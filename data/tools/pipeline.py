@@ -10,6 +10,8 @@ from rdkit.Chem import AllChem
 from rdkit.DataStructs import ExplicitBitVect
 from tqdm import tqdm
 
+from scripts.rdkit2pdbqt import MolFromPDBQTBlock
+
 
 def _mol_to_fingerprint_base64(mol, fp_type):
     if fp_type == 'morgan':
@@ -31,29 +33,21 @@ def _convert_single_file(full_path, out_ext):
     =>  ./tmp/AABABD/00000/Z18500480_1_T1.sdf
     """
     out_full_path = os.path.splitext(full_path)[0] + '.' + out_ext
+    # logger.debug(full_path)
+    # logger.debug(out_full_path)
     f = pybel.readfile('pdbqt', full_path)
-    f.__next__().write(out_ext, out_full_path)
+    f.__next__().write(out_ext, out_full_path, overwrite=True)
     f.close()
-    # logger.debug(in_full_path)
-    #
-    # conv = openbabel.OBConversion(
-    #     in_full_path, out_full_path
-    #     )
-    # # try:
-    # conv.OpenInAndOutFiles('pdbqt', out_ext)
-    # # except Exception as e:
-    # logger.warning('handling {} to {}'.format(in_full_path,out_full_path))
-    # conv.Convert()
-    # conv.CloseOutFile()
+
 
 
 def _cal_single_fingerprint(path, fp_type, out_dir):
     """
     calculate single fingerprint from file_id
     """
-    with os.path.splitext(path)[1] as be:
-        basename = os.path.basename(be[0])
-        ext = be[1]
+    be = os.path.splitext(path)
+    basename = os.path.basename(be[0])
+    ext = be[1]
     if ext == '.smiles':
         sup = Chem.SmilesMolSupplier(path)
     elif ext == '.sdf':
@@ -62,6 +56,7 @@ def _cal_single_fingerprint(path, fp_type, out_dir):
         raise TypeError("{}: unknown file format".format(path))
 
     base64 = [_mol_to_fingerprint_base64(mol, fp_type) for mol in sup]
+
     with open(os.path.join(out_dir, basename + '.fp'), 'w') as f:
         f.write(base64[0])
 
@@ -76,14 +71,18 @@ def _mol2fingerprint(full_path, ext, out_dir, fp_type="morgan"):
     :return:
     """
 
-    # logger.debug("processing {}".format(file_id))
-    dir_path = os.path.dirname(full_path)
-    basename = os.path.basename(full_path)
-    file_id = os.path.splitext(basename)[0]
-
-    _convert_single_file(full_path, ext)
-    sdf_path = os.path.splitext(full_path)[0] + '.' + ext
-    _cal_single_fingerprint(sdf_path, fp_type, out_dir)
+    if ext == 'pdbqt':
+        with open(full_path) as f:
+            mol = MolFromPDBQTBlock(f.read())
+            base64 = _mol_to_fingerprint_base64(mol, fp_type)
+            basename = os.path.basename(full_path)
+            with open(os.path.join(out_dir, basename + '.fp'), 'w') as f:
+                f.write(base64[0])
+    else:
+        _convert_single_file(full_path, ext)
+        _path = os.path.splitext(full_path)[0] + '.' + ext
+        logger.debug(_path)
+        _cal_single_fingerprint(_path, fp_type, out_dir)
 
 
 def _extract_single(d_path, tmp_dir, filename):
@@ -132,8 +131,8 @@ class DataPipeline:
             logger.info('mol num: {}'.format(len(paths)))
 
             if self.n_cpu > 1:
-                tasks = [executor.submit(_mol2fingerprint, f, 'smiles', self.out_dir) for f in paths
-                         if 'Z1692919946_1_T1.pdbqt' in f]
+                tasks = [executor.submit(_mol2fingerprint, path, 'pdbqt', self.out_dir) for path in paths]
+                        # if 'Z1692919946_1_T1.pdbqt' not in path]
                 wait(tasks, return_when=ALL_COMPLETED)
             else:
                 for f in tqdm(paths):
