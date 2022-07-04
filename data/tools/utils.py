@@ -8,13 +8,14 @@ from loguru import logger
 
 
 @contextlib.contextmanager
-def tmpdir_manager(base_dir: Optional[str] = None):
+def tmpdir_manager(base_dir: Optional[str] = None, delete: bool = True):
     """Context manager that deletes a temporary directory on exit."""
     tmpdir = tempfile.mkdtemp(dir=base_dir)
     try:
         yield tmpdir
     finally:
-        shutil.rmtree(tmpdir, ignore_errors=True)
+        if delete:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 @contextlib.contextmanager
