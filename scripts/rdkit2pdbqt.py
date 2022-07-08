@@ -299,6 +299,8 @@ def MolFromPDBQTBlock(block, sanitize=True, removeHs=True):
 
         pdb_lines.append(pdb_line + atom_type)
     mol = Chem.MolFromPDBBlock('\n'.join(pdb_lines), sanitize=False)
+    if mol is None:
+        return mol
     if sanitize:
         Chem.SanitizeMol(mol)
     else:
