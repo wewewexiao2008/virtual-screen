@@ -47,14 +47,21 @@ class DataPipeline:
                  data_dir: str,
                  out_dir: str,
                  fp_type: str = 'morgan',
-                 mid_format: str = 'smiles', # in 'smiles' or 'pdbqt'
+                 mid_format: str = 'pdbqt', # in 'smiles' or 'pdbqt'
                  n_cpu: int = 1):
+        """
+
+        :param data_dir: raw data directory
+        :param out_dir: fingerprint output directory
+        :param fp_type: 'morgan' or 'maccs'
+        :param mid_format: 'pdbqt' or 'smiles'(abandoned)
+        :param n_cpu: number of processes
+        """
         self.data_dir = data_dir
         self.out_dir = out_dir
         self.fp_type = fp_type
         self.mid_format = mid_format
         self.n_cpu = n_cpu
-        self.error_list = []
 
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
@@ -94,7 +101,6 @@ class DataPipeline:
             logger.info("fingerprinting done.")
             out_files = glob.glob(r'{}\*.fp'.format(self.out_dir))
             logger.info('output num: {}'.format(len(out_files)))
-            # logger.warning('error list: {}'.format([i for i in self.error_list]))
 
     def _mol_to_fingerprint_base64(self, mol):
         if self.fp_type == 'morgan':
@@ -126,7 +132,8 @@ class DataPipeline:
                     logger.warning("can't read mol from {}".format(basename))
                     return
                 base64 = self._mol_to_fingerprint_base64(mol)
-                with open(os.path.join(self.out_dir, mol_id + '.fp'), 'w') as fp_f:
+                ext = '_' + self.fp_type + '.fp'
+                with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
                     fp_f.write(base64)
         else:
             # TODO: abandon format conversion
