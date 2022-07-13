@@ -29,20 +29,18 @@ if __name__ == '__main__':
     data_pipeline = pipeline.DataPipeline(
         data_dir='./debug/example',
         n_cpu=16,
-        mid_format='pdbqt',
-        fp_type='maccs',
+        fp_type='morgan',
         out_dir=out_dir
     )
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
-    logger.add('./log/debug_{time}.log',retention=2)
+    logger.add('./log/debug_{time}.log', retention=2)
         # with futures.ProcessPoolExecutor(1) as executor:
         #     for i in range(5, 10000):
         # tmp_dir = ''
-    with utils.tmpdir_manager('.', delete=True) as tmp_dir:
-        with timing("timing for extracting"):
+    with utils.tmpdir_manager('./debug/', delete=True) as tmp_dir:
+        with timing("extracting and fingerprinting"):
             data_pipeline.extract(tmp_dir)
-        with timing("timing for fingerprinting"):
             data_pipeline.fingerprint(tmp_dir)
         # future = executor.submit(data_pipeline.extract, tmp_dir)
                 # print(future.result())
