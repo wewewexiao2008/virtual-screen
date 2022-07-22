@@ -2,13 +2,13 @@ import os,glob
 import tarfile
 from openbabel import openbabel, pybel
 from loguru import logger
+from tqdm import tqdm
 from concurrent import futures
 from concurrent.futures import  wait, ALL_COMPLETED, FIRST_COMPLETED
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.DataStructs import ExplicitBitVect
-from tqdm import tqdm
 
 from scripts.rdkit2pdbqt import MolFromPDBQTBlock
 
@@ -23,6 +23,12 @@ def _extract_single(d_path, tmp_dir, filename):
         with tarfile.open(os.path.join(tmp_dir, name)) as tf:
             tf.extractall(os.path.join(tmp_dir, dirname))
         os.remove(os.path.join(tmp_dir, name))
+
+
+def _get_id_from_path(path):
+    basename = os.path.basename(path)
+    mol_id = os.path.splitext(basename)[0]
+    return mol_id
 
 
 class DataPipeline:
@@ -44,6 +50,56 @@ class DataPipeline:
         self.out_dir = out_dir
         self.fp_type = fp_type
         self.n_cpu = n_cpu
+        self.fps = []
+
+    def _mol_to_fingerprint_base64(self, mol):
+        if self.fp_type == 'morgan':
+            fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
+        elif self.fp_type == 'maccs':
+            fp = AllChem.GetMACCSKeysFingerprint(mol)
+        else:
+            fp = ExplicitBitVect(0)
+            logger.error("get wrong fingerprint type as {}!".format(self.fp_type))
+        base64 = ExplicitBitVect.ToBase64(fp)
+        return base64
+
+    def _pdbqt2fingerprint(self, full_path):
+        """
+        Calculate .pdbqt file's fingerprint.
+        Wrapper for parallel processing
+        :param full_path:
+        :param mid_format: 'sdf' or 'smiles'
+        :return: None
+        """
+        # directly read as rdkit.Chem.rdchem.Mol
+        with open(full_path) as mol_f:
+            mol_id = _get_id_from_path(full_path)
+            mol = MolFromPDBQTBlock(mol_f.read())
+            if mol is None:
+                logger.warning("can't read mol from {}".format(mol_id))
+                return
+            base64 = self._mol_to_fingerprint_base64(mol)
+            ext = '.fp'
+            with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
+                fp_f.write(base64)
+
+    def _pack_fingerprint(self):
+        """
+        Compact fingerprint to one single file for storage convenience.
+        :return: None
+        """
+        out_files = glob.glob(r'{}\*.fp'.format(self.out_dir))
+        logger.info("Packing fingerprints into packed.fps")
+        with open('packed.fps', 'w') as wf:
+            wf.writelines("id\tbase64\n")
+            for k in tqdm(out_files):
+                with open(k, 'r') as f:
+                    basename = os.path.basename(k)
+                    mol_id = os.path.splitext(basename)[0]
+                    wf.writelines("{}\t{}\n".format(mol_id, f.read()))
+
+        # for p in paths:
+            # with open(p, 'r') as f:
 
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
@@ -79,39 +135,7 @@ class DataPipeline:
             else:
                 for f in tqdm(paths):
                     self._pdbqt2fingerprint(full_path=f)
+            self._pack_fingerprint()
             logger.info("fingerprinting done.")
-            out_files = glob.glob(r'{}\*.fp'.format(self.out_dir))
-            logger.info('output num: {}'.format(len(out_files)))
+            # logger.info()
 
-    def _mol_to_fingerprint_base64(self, mol):
-        if self.fp_type == 'morgan':
-            fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2)
-        elif self.fp_type == 'maccs':
-            fp = AllChem.GetMACCSKeysFingerprint(mol)
-        else:
-            fp = ExplicitBitVect(0)
-            logger.error("get wrong fingerprint type as {}!".format(self.fp_type))
-        base64 = ExplicitBitVect.ToBase64(fp)
-        return base64
-
-    def _pdbqt2fingerprint(self, full_path):
-        """
-        Calculate .pdbqt file's fingerprint.
-        Wrapper for parallel processing
-        :param full_path:
-        :param mid_format: 'sdf' or 'smiles'
-        :return: None
-        """
-        # directly read as rdkit.Chem.rdchem.Mol
-        with open(full_path) as mol_f:
-            basename = os.path.basename(full_path)
-            mol_id = os.path.splitext(basename)[0]
-            # try:
-            mol = MolFromPDBQTBlock(mol_f.read())
-            if mol is None:
-                logger.warning("can't read mol from {}".format(basename))
-                return
-            base64 = self._mol_to_fingerprint_base64(mol)
-            ext = '_' + self.fp_type + '.fp'
-            with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
-                fp_f.write(base64)

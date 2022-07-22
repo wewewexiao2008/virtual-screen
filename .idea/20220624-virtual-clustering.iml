@@ -12,4 +12,7 @@
     <orderEntry type="jdk" jdkName="Python 3.6 (20220624-virtual-clustering-py36)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyDocumentationSettings">
+    <option name="renderExternalDocumentation" value="true" />
+  </component>
 </module>
