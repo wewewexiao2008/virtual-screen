@@ -46,6 +46,9 @@ def main():
     log_file = os.path.join(log_dir, 'debug_{time}.log')
     logger.add(log_file)
 
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
     """main procedure"""
     with utils.tmpdir_manager('.', delete=True) as tmp_dir:
         with utils.timing("extracting and calculating fingerprint"):

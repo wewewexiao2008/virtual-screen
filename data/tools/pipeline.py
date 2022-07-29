@@ -119,7 +119,7 @@ class DataPipeline:
 
     def fingerprint(self, tmp_dir):
         """
-        .pdbqt file to base64 fingerprint
+        .pdbqt file to base64 fingerprint and pack as .fps
         :param tmp_dir: temp directory containing .pdbqt files
         :return: None
         """
