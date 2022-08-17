@@ -13,7 +13,7 @@ def main():
     parser.add_argument('-d', '--data_dir', type=str, metavar='<data_path>', required=True,
                         help='input directory')
     parser.add_argument("-c", "--ckpt_dir", type=str, default='./checkpoint')
-    parser.add_argument('-o', '--out_dir', type=str, metavar='<out_path>', required=True,
+    parser.add_argument('-o', '--out_path', type=str, metavar='<out_path>', required=True,
                         help='output directory')
     parser.add_argument('-n', '--n_cpu', type=int,
                         help='assign the number of processes.')
@@ -26,7 +26,7 @@ def main():
     """config"""
     data_dir = args.data_dir
     ckpt_dir = args.ckpt_dir
-    out_dir = args.out_dir
+    out_path = args.out_path
 
     n_cpu = args.n_cpu
     fp_type = args.type
@@ -41,23 +41,22 @@ def main():
     log_file = os.path.join(log_dir, 'debug_{time}.log')
     logger.add(log_file)
 
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
     if not os.path.exists('./tmp/'):
         os.makedirs('./tmp/')
+
+    if not os.path.exists('./out/'):
+        os.makedirs('./out/')
 
     """main procedure"""
     with utils.tmpdir_manager('./tmp', delete=True) as tmp_dir:
 
         data_pipeline = pipeline.DataPipeline(
             data_dir=data_dir,
-            out_dir=out_dir,
             n_cpu=n_cpu,
             fp_type=fp_type
         )
 
-        fps_path = 'all.fps'
+        fps_path = os.path.join('./out/', out_path)
 
         reducer = Reducer(fps_path=fps_path,
                           checkpoint_path=ckpt_dir,

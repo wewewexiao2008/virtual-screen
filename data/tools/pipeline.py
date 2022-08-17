@@ -4,6 +4,7 @@ from loguru import logger
 from tqdm import tqdm
 from concurrent import futures
 from concurrent.futures import wait, ALL_COMPLETED
+import multiprocessing
 
 from rdkit.Chem import AllChem
 from rdkit.DataStructs import ExplicitBitVect
@@ -21,8 +22,7 @@ def _extract_single(tar_path, tmp_dir):
         with tarfile.open(os.path.join(tmp_dir, name)) as tf:
             tf.extractall(os.path.join(tmp_dir, dirname))
         os.remove(os.path.join(tmp_dir, name))
-
-    logger.info("{}".format(tar_path))
+    # logger.info("{}".format(tar_path))
 
 
 def _get_id_from_path(path):
@@ -36,17 +36,14 @@ class DataPipeline:
     def __init__(self,
                  *,
                  data_dir: str,
-                 out_dir: str,
                  fp_type: str = 'morgan',
                  n_cpu: int = 16):
         """
         :param data_dir: raw data directory
-        :param out_dir: fingerprint output directory
         :param fp_type: 'morgan' or 'maccs'
         :param n_cpu: number of processes
         """
         self.data_dir = data_dir
-        self.out_dir = out_dir
         self.fp_type = fp_type
         self.n_cpu = n_cpu
         self.fps = []
@@ -76,29 +73,9 @@ class DataPipeline:
             mol = MolFromPDBQTBlock(mol_f.read())
             if mol is None:
                 logger.warning("can't read mol from {}".format(mol_id))
-                return
+                return None
             base64 = self._mol_to_fingerprint_base64(mol)
-            ext = '.fp'
-            with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
-                fp_f.write(base64)
-
-    def _pack_fingerprint(self, filename):
-        """
-        Compact fingerprint to one single file for storage convenience.
-        :return: None
-        """
-        fp_ls = glob.glob(r'{}/*.fp'.format(self.out_dir))
-        # step = max_record
-        # groups = [fp_ls[i:i + step] for i in range(0, len(fp_ls), step)]
-        # for i, g in enumerate(fp_ls):
-        logger.info("Packing fingerprints {}".format(len(fp_ls)))
-        with open(filename, 'w') as wf:
-            wf.writelines("id\tbase64\n")
-            for k in tqdm(fp_ls):
-                with open(k, 'r') as f:
-                    basename = os.path.basename(k)
-                    mol_id = os.path.splitext(basename)[0]
-                    wf.writelines("{}\t{}\n".format(mol_id, f.read()))
+            return mol_id, base64
 
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
@@ -116,31 +93,32 @@ class DataPipeline:
                     _extract_single(p, tmp_dir)
             if self.n_cpu > 1:
                 wait(tasks, return_when=ALL_COMPLETED)
-            # logger.info("extracting done.")
 
     def fingerprint(self, tmp_dir, pack_filename='packed.fps'):
         """
         .pdbqt file to base64 fingerprint and pack as .fps
-        :param max_record:
         :param pack_filename:
         :param tmp_dir: temp directory containing .pdbqt files
         :return: None
         """
+        def write_callback(res):
+            if res is not None:
+                with open(pack_filename, 'a') as wf:
+                    line = "{}\t{}\n".format(res[0], res[1])
+                    wf.write(line)
+
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
             # 一级目录 AAAAAA
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
             logger.info('mol num: {}'.format(len(paths)))
 
-            if self.n_cpu > 1:
-                tasks = [executor.submit(self._pdbqt2fingerprint, path) for path in paths]
-                        # if 'Z1692919946_1_T1.pdbqt' not in path]
-                wait(tasks, return_when=ALL_COMPLETED)
-            else:
-                for f in tqdm(paths):
-                    self._pdbqt2fingerprint(full_path=f)
+            with open(pack_filename, 'w') as wf:
+                wf.writelines("id\tbase64\n")
 
-            # pack
-            if pack_filename is not None:
-                self._pack_fingerprint(pack_filename)
-                # logger.info("fingerprinting done.")
+            pool = multiprocessing.Pool(self.n_cpu)
+            for path in paths:
+                pool.apply_async(func=self._pdbqt2fingerprint, args=(path,), callback=write_callback)
+            pool.close()
+            pool.join()
+
 
