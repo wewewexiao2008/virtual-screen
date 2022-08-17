@@ -1,2 +1,1 @@
-python .\\run.py -d /public/home/zhangyangroup/public/Virtualflow_Libarary/Enamine-REAL-2018q12_isomers.pdbqt -o .\\output \
--n 400
+python ./run.py -d ./debug -o ./debug/output -n 32

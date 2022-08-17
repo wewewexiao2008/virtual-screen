@@ -11,9 +11,9 @@ from rdkit.DataStructs import ExplicitBitVect
 from scripts.rdkit2pdbqt import MolFromPDBQTBlock
 
 
-def _extract_single(d_path, tmp_dir, filename):
+def _extract_single(tar_path, tmp_dir):
     """extract a single 'AABBCC' directory"""
-    with tarfile.open(os.path.join(d_path, filename)) as tf:
+    with tarfile.open(tar_path) as tf:
         names = tf.getnames()
         tf.extractall(tmp_dir)
     for name in names:
@@ -21,6 +21,8 @@ def _extract_single(d_path, tmp_dir, filename):
         with tarfile.open(os.path.join(tmp_dir, name)) as tf:
             tf.extractall(os.path.join(tmp_dir, dirname))
         os.remove(os.path.join(tmp_dir, name))
+
+    logger.info("{}".format(tar_path))
 
 
 def _get_id_from_path(path):
@@ -80,7 +82,7 @@ class DataPipeline:
             with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
                 fp_f.write(base64)
 
-    def _pack_fingerprint(self, filename, max_record):
+    def _pack_fingerprint(self, filename):
         """
         Compact fingerprint to one single file for storage convenience.
         :return: None
@@ -101,18 +103,20 @@ class DataPipeline:
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
             d_ls = os.listdir(self.data_dir)
+            paths = glob.glob(r'{}\**\*.tar'.format(self.data_dir), recursive=True)
             logger.info("directory num: {}".format(len(d_ls)))
+            logger.info('tarfile num: {}'.format(len(paths)))
+
             tasks = []
-            for d in d_ls:
-                dpath = os.path.join(self.data_dir, d)
-                if self.n_cpu > 1:
-                    tasks.extend([executor.submit(_extract_single, dpath, tmp_dir, f) for f in (os.listdir(dpath))])
-                else:
-                    for f in tqdm(os.listdir(dpath)):
-                        _extract_single(dpath, tmp_dir, f)
+
+            if self.n_cpu > 1:
+                tasks.extend([executor.submit(_extract_single, p, tmp_dir) for p in paths])
+            else:
+                for p in tqdm(paths):
+                    _extract_single(p, tmp_dir)
             if self.n_cpu > 1:
                 wait(tasks, return_when=ALL_COMPLETED)
-            logger.info("extracting done.")
+            # logger.info("extracting done.")
 
     def fingerprint(self, tmp_dir, pack_filename='packed.fps'):
         """
@@ -138,5 +142,5 @@ class DataPipeline:
             # pack
             if pack_filename is not None:
                 self._pack_fingerprint(pack_filename)
-                logger.info("fingerprinting done.")
+                # logger.info("fingerprinting done.")
 

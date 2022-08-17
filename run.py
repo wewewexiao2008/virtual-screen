@@ -15,7 +15,7 @@ def main():
     parser.add_argument("-c", "--ckpt_dir", type=str, default='./checkpoint')
     parser.add_argument('-o', '--out_dir', type=str, metavar='<out_path>', required=True,
                         help='output directory')
-    parser.add_argument('-n', '--n_cpu', type=int, default=16,
+    parser.add_argument('-n', '--n_cpu', type=int,
                         help='assign the number of processes.')
     parser.add_argument('-t', '--type', type=str, default='morgan',
                         help='fingerprint type: morgan or maccs.')
@@ -44,8 +44,11 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
+    if not os.path.exists('./tmp/'):
+        os.makedirs('./tmp/')
+
     """main procedure"""
-    with utils.tmpdir_manager('.', delete=True) as tmp_dir:
+    with utils.tmpdir_manager('./tmp', delete=True) as tmp_dir:
 
         data_pipeline = pipeline.DataPipeline(
             data_dir=data_dir,
@@ -63,10 +66,11 @@ def main():
                           max_iter=500,
                           init_size=n_groups_l1)
 
-        with utils.timing("extracting and calculating fingerprint"):
+        with utils.timing("extracting"):
             data_pipeline.extract(tmp_dir)
+        with utils.timing("calculating fingerprint"):
             # pack fingerprint as a data file
-            data_pipeline.fingerprint(tmp_dir, 'all.fps')
+            data_pipeline.fingerprint(tmp_dir, fps_path)
         #
         # if not os.path.exists(ckpt_dir):
         #     os.makedirs(ckpt_dir)
