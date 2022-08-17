@@ -87,7 +87,7 @@ class DataPipeline:
         Compact fingerprint to one single file for storage convenience.
         :return: None
         """
-        fp_ls = glob.glob(r'{}\*.fp'.format(self.out_dir))
+        fp_ls = glob.glob(r'{}/*.fp'.format(self.out_dir))
         # step = max_record
         # groups = [fp_ls[i:i + step] for i in range(0, len(fp_ls), step)]
         # for i, g in enumerate(fp_ls):
@@ -103,7 +103,7 @@ class DataPipeline:
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
             d_ls = os.listdir(self.data_dir)
-            paths = glob.glob(r'{}\**\*.tar'.format(self.data_dir), recursive=True)
+            paths = glob.glob(r'{}/**/*.tar'.format(self.data_dir), recursive=True)
             logger.info("directory num: {}".format(len(d_ls)))
             logger.info('tarfile num: {}'.format(len(paths)))
 
@@ -128,7 +128,7 @@ class DataPipeline:
         """
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
             # 一级目录 AAAAAA
-            paths = glob.glob(r'{}\**\*.pdbqt'.format(tmp_dir), recursive=True)
+            paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
             logger.info('mol num: {}'.format(len(paths)))
 
             if self.n_cpu > 1:
