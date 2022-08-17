@@ -20,6 +20,7 @@ def main():
                         help='assign the number of processes.')
     parser.add_argument('-t', '--type', type=str, default='morgan',
                         help='fingerprint type: morgan or maccs.')
+    parser.add_argument('-x', '--delete', type=int, help='delete temp?')
     # group = parser.add_mutually_exclusive_group(required=True)
 
     args = parser.parse_args()
@@ -28,6 +29,7 @@ def main():
     data_dir = args.data_dir
     ckpt_dir = args.ckpt_dir
     out_path = args.out_path
+    delete = True if args.delete == 1 else False
 
     n_cpu = args.n_cpu
     fp_type = args.type
@@ -49,7 +51,7 @@ def main():
         os.makedirs('./out/')
 
     """main procedure"""
-    with utils.tmpdir_manager('./tmp', delete=True) as tmp_dir:
+    with utils.tmpdir_manager('./tmp', delete=delete) as tmp_dir:
 
         data_pipeline = pipeline.DataPipeline(
             data_dir=data_dir,
@@ -66,7 +68,7 @@ def main():
                           max_iter=500,
                           init_size=n_groups_l1)
 
-        logger.info("cpu count: {}/{}".format(n_cpu, multiprocessing.cpu_count()))
+        # logger.info("cpu count: {}/{}".format(n_cpu, multiprocessing.cpu_count()))
 
 
         with utils.timing("extracting"):
