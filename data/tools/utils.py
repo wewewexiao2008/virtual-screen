@@ -17,7 +17,7 @@ def tmpdir_manager(base_dir: Optional[str] = None, delete: bool = True):
         if delete:
             logger.info("Deleting temp dir...")
             shutil.rmtree(tmpdir, ignore_errors=True)
-            logger.info("done.")
+        logger.info("done.")
 
 
 @contextlib.contextmanager
