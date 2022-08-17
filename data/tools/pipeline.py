@@ -37,7 +37,7 @@ class DataPipeline:
                  *,
                  data_dir: str,
                  fp_type: str = 'morgan',
-                 n_cpu: int = 16):
+                 n_cpu: int):
         """
         :param data_dir: raw data directory
         :param fp_type: 'morgan' or 'maccs'
@@ -72,27 +72,23 @@ class DataPipeline:
             mol_id = _get_id_from_path(full_path)
             mol = MolFromPDBQTBlock(mol_f.read())
             if mol is None:
-                logger.warning("can't read mol from {}".format(mol_id))
+                # logger.warning("can't read mol from {}".format(mol_id))
                 return None
             base64 = self._mol_to_fingerprint_base64(mol)
             return mol_id, base64
 
     def extract(self, tmp_dir):
-        with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
-            d_ls = os.listdir(self.data_dir)
-            paths = glob.glob(r'{}/**/*.tar'.format(self.data_dir), recursive=True)
-            logger.info("directory num: {}".format(len(d_ls)))
-            logger.info('tarfile num: {}'.format(len(paths)))
+        # with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
+        d_ls = os.listdir(self.data_dir)
+        paths = glob.glob(r'{}/**/*.tar'.format(self.data_dir), recursive=True)
+        logger.info("directory num: {}".format(len(d_ls)))
+        logger.info('tarfile num: {}'.format(len(paths)))
 
-            tasks = []
-
-            if self.n_cpu > 1:
-                tasks.extend([executor.submit(_extract_single, p, tmp_dir) for p in paths])
-            else:
-                for p in tqdm(paths):
-                    _extract_single(p, tmp_dir)
-            if self.n_cpu > 1:
-                wait(tasks, return_when=ALL_COMPLETED)
+        pool = multiprocessing.Pool(self.n_cpu)
+        for path in paths:
+            pool.apply_async(func=_extract_single, args=(path, tmp_dir, ))
+        pool.close()
+        pool.join()
 
     def fingerprint(self, tmp_dir, pack_filename='packed.fps'):
         """
@@ -107,18 +103,18 @@ class DataPipeline:
                     line = "{}\t{}\n".format(res[0], res[1])
                     wf.write(line)
 
-        with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
+        # with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
             # 一级目录 AAAAAA
-            paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
-            logger.info('mol num: {}'.format(len(paths)))
+        paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        logger.info('mol num: {}'.format(len(paths)))
 
-            with open(pack_filename, 'w') as wf:
-                wf.writelines("id\tbase64\n")
+        with open(pack_filename, 'w') as wf:
+            wf.writelines("id\tbase64\n")
 
-            pool = multiprocessing.Pool(self.n_cpu)
-            for path in paths:
-                pool.apply_async(func=self._pdbqt2fingerprint, args=(path,), callback=write_callback)
-            pool.close()
-            pool.join()
+        pool = multiprocessing.Pool(self.n_cpu)
+        for path in paths:
+            pool.apply_async(func=self._pdbqt2fingerprint, args=(path,), callback=write_callback)
+        pool.close()
+        pool.join()
 
 

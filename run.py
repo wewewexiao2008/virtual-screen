@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 from loguru import logger
 from data.tools import utils, pipeline
@@ -64,6 +65,9 @@ def main():
                           batch_size=1000,
                           max_iter=500,
                           init_size=n_groups_l1)
+
+        logger.info("cpu count: {}/{}".format(n_cpu, multiprocessing.cpu_count()))
+
 
         with utils.timing("extracting"):
             data_pipeline.extract(tmp_dir)
