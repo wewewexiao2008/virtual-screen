@@ -2,17 +2,11 @@
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/debug" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
       <excludeFolder url="file://$MODULE_DIR$/log" />
-      <excludeFolder url="file://$MODULE_DIR$/debug/tmp" />
-      <excludeFolder url="file://$MODULE_DIR$/debug/example" />
-      <excludeFolder url="file://$MODULE_DIR$/debug" />
     </content>
-    <content url="file://$MODULE_DIR$/debug/tmp" />
     <orderEntry type="jdk" jdkName="Python 3.6 (20220624-virtual-clustering-py36)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-  </component>
-  <component name="PyDocumentationSettings">
-    <option name="renderExternalDocumentation" value="true" />
   </component>
 </module>

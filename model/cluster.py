@@ -17,11 +17,19 @@ from data.tools.utils import timing
 class Reducer:
     def __init__(self,
                  data_path: str,
-                 alg: str,
-                 dim_reducer: str):
+                 checkpoint_path: str,
+                 n_clusters: int = 3000,
+                 batch_size: int = 10000,
+                 max_iter: int = 1000,
+                 init_size: int = 10000,
+                 ):
+
         self.data_path = data_path
-        self.alg = alg
-        self.dim_reducer = dim_reducer
+        self.ckpt_path = checkpoint_path
+        self.n_clusters = n_clusters
+        self.batch_size = batch_size
+        self.max_iter = max_iter
+        self.init_size = init_size
         self.data_df = pd.DataFrame()
         self.fps = []
 
@@ -34,47 +42,36 @@ class Reducer:
         for i in df['base64']:
             _fp = ExplicitBitVect(0)
             ExplicitBitVect.FromBase64(_fp, i)
-            self.fps.append(_fp)
+            arr = np.zeros((1,))
+            DataStructs.ConvertToNumpyArray(_fp, arr)
+            self.fps.append(arr)
 
         """step 2: configure"""
-        if self.alg == 'kmeans':
-            # TODO Config Dict module
-            clustering = KMeans(n_clusters=8, init='k-means++', n_init=10,
-                                max_iter=300, tol=1e-4, precompute_distances='auto',
-                                verbose=0, random_state=None, copy_x=True,
-                                n_jobs=None,algorithm='auto')
-        elif self.alg == 'mb-kmeans':
-            clustering = MiniBatchKMeans(n_clusters=8, init='k-means++', max_iter=100,
-                                         batch_size=100, verbose=0, compute_labels=True,
-                                         random_state=None, tol=0.0, max_no_improvement=10,
-                                         init_size=None, n_init=3, reassignment_ratio=0.01)
-        elif self.alg == 'dbscan':
-            clustering = DBSCAN(eps=0.5, min_samples=5, metric='euclidean',
-                                metric_params=None, algorithm='auto', leaf_size=30, p=None,
-                                n_jobs=None)
-        elif self.alg == 'ward':
-            clustering = AgglomerativeClustering(n_clusters=8, linkage='ward')
-        else:
-            # error handle
-            return
+        clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
+                                     batch_size=self.batch_size,
+                                     max_iter=self.max_iter,
+                                     init_size=self.init_size,
+                                     init='k-means++', verbose=0, compute_labels=True,
+                                     random_state=None, tol=0.0, max_no_improvement=10,
+                                     n_init=3, reassignment_ratio=0.01)
 
         """step 3: fit the data"""
-        with timing("fitting with {}".format(self.alg)):
+        with timing("fitting and predicting with mini-batch k-means"):
             tic = time.time()
-            clustering.fit(self.fps)
+            y = clustering.fit_predict(self.fps)
             toc = time.time()
 
+        # label
+        df['group_1'] = y
         t_train = toc-tic
 
         """step 4: save the model"""
         joblib.dump(clustering,
-                    'checkpoint_{}_{}.pkl'.format(self.alg, datetime.datetime.now().__str__()))
+                    'checkpoint_group_{}.pkl'.format(datetime.datetime.now().__str__()))
 
-        """step 5: visualize(optional)"""
-        if self.dim_reducer == 'tsne':
-            reducer = TSNE()
+        # TODO: visualization
 
 
-        """step 6: reduce"""
-        # TODO: filter strategy
+
+
 

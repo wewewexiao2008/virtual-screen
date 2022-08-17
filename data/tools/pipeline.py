@@ -1,12 +1,10 @@
-import os,glob
+import os, glob
 import tarfile
-from openbabel import openbabel, pybel
 from loguru import logger
 from tqdm import tqdm
 from concurrent import futures
-from concurrent.futures import  wait, ALL_COMPLETED, FIRST_COMPLETED
+from concurrent.futures import wait, ALL_COMPLETED
 
-from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit.DataStructs import ExplicitBitVect
 
@@ -40,7 +38,6 @@ class DataPipeline:
                  fp_type: str = 'morgan',
                  n_cpu: int = 1):
         """
-
         :param data_dir: raw data directory
         :param out_dir: fingerprint output directory
         :param fp_type: 'morgan' or 'maccs'
@@ -83,23 +80,23 @@ class DataPipeline:
             with open(os.path.join(self.out_dir, mol_id + ext), 'w') as fp_f:
                 fp_f.write(base64)
 
-    def _pack_fingerprint(self):
+    def _pack_fingerprint(self, filename, max_record):
         """
         Compact fingerprint to one single file for storage convenience.
         :return: None
         """
-        out_files = glob.glob(r'{}\*.fp'.format(self.out_dir))
-        logger.info("Packing fingerprints into packed.fps")
-        with open('packed.fps', 'w') as wf:
+        fp_ls = glob.glob(r'{}\*.fp'.format(self.out_dir))
+        # step = max_record
+        # groups = [fp_ls[i:i + step] for i in range(0, len(fp_ls), step)]
+        # for i, g in enumerate(fp_ls):
+        logger.info("Packing fingerprints {}".format(len(fp_ls)))
+        with open(filename, 'w') as wf:
             wf.writelines("id\tbase64\n")
-            for k in tqdm(out_files):
+            for k in tqdm(fp_ls):
                 with open(k, 'r') as f:
                     basename = os.path.basename(k)
                     mol_id = os.path.splitext(basename)[0]
                     wf.writelines("{}\t{}\n".format(mol_id, f.read()))
-
-        # for p in paths:
-            # with open(p, 'r') as f:
 
     def extract(self, tmp_dir):
         with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
@@ -117,9 +114,11 @@ class DataPipeline:
                 wait(tasks, return_when=ALL_COMPLETED)
             logger.info("extracting done.")
 
-    def fingerprint(self, tmp_dir):
+    def fingerprint(self, tmp_dir, pack_filename='packed.fps'):
         """
         .pdbqt file to base64 fingerprint and pack as .fps
+        :param max_record:
+        :param pack_filename:
         :param tmp_dir: temp directory containing .pdbqt files
         :return: None
         """
@@ -135,7 +134,9 @@ class DataPipeline:
             else:
                 for f in tqdm(paths):
                     self._pdbqt2fingerprint(full_path=f)
-            self._pack_fingerprint()
-            logger.info("fingerprinting done.")
-            # logger.info()
+
+            # pack
+            if pack_filename is not None:
+                self._pack_fingerprint(pack_filename)
+                logger.info("fingerprinting done.")
 

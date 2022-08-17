@@ -1,6 +1,6 @@
-# 20220624-virtual-clustering
+# 20220817-virtual-clustering
 本项目用于对小分子库进行降重
-已经完成分子指纹计算+并行化
+已经完成分层Kmeans聚类
 
 文件目录:
 ```
@@ -14,9 +14,11 @@
 - data.tools
   - pipeline.py
   - utils.py
+- model
+  - cluster.py
 - scripts
   - rdkit2pdbqt.py
-- parallel_test.py
+- run.py
 ```
 
 用法：python .\parallel_test.py

@@ -1,11 +1,7 @@
-import tarfile
 import os
 from loguru import logger
-from tqdm import tqdm
-from openbabel import openbabel
-import concurrent.futures
 from data.tools import utils, pipeline
-# from data.tools import extractor
+from model.cluster import Reducer
 
 
 def main():
@@ -32,13 +28,6 @@ def main():
     n_cpu = args.n_cpu
     fp_type = args.type
 
-    data_pipeline = pipeline.DataPipeline(
-        data_dir=data_dir,
-        out_dir=out_dir,
-        n_cpu=n_cpu,
-        fp_type=fp_type
-    )
-
     # logging
     log_dir = os.path.join(os.path.curdir, 'log')
     if not os.path.exists(log_dir):
@@ -51,9 +40,21 @@ def main():
 
     """main procedure"""
     with utils.tmpdir_manager('.', delete=True) as tmp_dir:
+
+        data_pipeline = pipeline.DataPipeline(
+            data_dir=data_dir,
+            out_dir=out_dir,
+            n_cpu=n_cpu,
+            fp_type=fp_type
+        )
+
         with utils.timing("extracting and calculating fingerprint"):
             data_pipeline.extract(tmp_dir)
-            data_pipeline.fingerprint(tmp_dir)
+            # pack fingerprint as a data file
+            data_pipeline.fingerprint(tmp_dir, 'all.fps')
+
+        reducer_l1 = Reducer('all.fps', n_clusters=10000, batch_size=10000, max_iter=10000, init_size=3000, )
+
 
 
 if __name__ == "__main__":
