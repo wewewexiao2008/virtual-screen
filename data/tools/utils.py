@@ -22,7 +22,7 @@ def tmpdir_manager(base_dir: Optional[str] = None, delete: bool = True):
 
 @contextlib.contextmanager
 def timing(msg: str):
-    logger.info('Started {}'.format(msg))
+    logger.info('Started {} '.format(msg))
     tic = time.time()
     yield
     toc = time.time()
