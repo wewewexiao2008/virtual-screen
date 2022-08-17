@@ -36,7 +36,7 @@ class DataPipeline:
                  data_dir: str,
                  out_dir: str,
                  fp_type: str = 'morgan',
-                 n_cpu: int = 1):
+                 n_cpu: int = 16):
         """
         :param data_dir: raw data directory
         :param out_dir: fingerprint output directory

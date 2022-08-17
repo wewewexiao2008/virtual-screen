@@ -53,7 +53,6 @@ def main():
             # pack fingerprint as a data file
             data_pipeline.fingerprint(tmp_dir, 'all.fps')
 
-        reducer_l1 = Reducer('all.fps', n_clusters=10000, batch_size=10000, max_iter=10000, init_size=3000, )
 
 
 
