@@ -16,7 +16,7 @@ from data.tools.utils import timing
 
 class Reducer:
     def __init__(self,
-                 data_path: str,
+                 fps_path: str,
                  checkpoint_path: str,
                  n_clusters: int = 3000,
                  batch_size: int = 10000,
@@ -24,7 +24,7 @@ class Reducer:
                  init_size: int = 10000,
                  ):
 
-        self.data_path = data_path
+        self.data_path = fps_path
         self.ckpt_path = checkpoint_path
         self.n_clusters = n_clusters
         self.batch_size = batch_size
@@ -67,7 +67,7 @@ class Reducer:
 
         """step 4: save the model"""
         joblib.dump(clustering,
-                    'checkpoint_group_{}.pkl'.format(datetime.datetime.now().__str__()))
+                    'checkpoint_{}.pkl'.format(datetime.datetime.now().__str__()))
 
         # TODO: visualization
 

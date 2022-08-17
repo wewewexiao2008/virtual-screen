@@ -12,6 +12,7 @@ def main():
 
     parser.add_argument('-d', '--data_dir', type=str, metavar='<data_path>', required=True,
                         help='input directory')
+    parser.add_argument("-c", "--ckpt_dir", type=str, default='./checkpoint')
     parser.add_argument('-o', '--out_dir', type=str, metavar='<out_path>', required=True,
                         help='output directory')
     parser.add_argument('-n', '--n_cpu', type=int, default=16,
@@ -24,9 +25,14 @@ def main():
 
     """config"""
     data_dir = args.data_dir
+    ckpt_dir = args.ckpt_dir
     out_dir = args.out_dir
+
     n_cpu = args.n_cpu
     fp_type = args.type
+
+    n_groups_l1 = 10000
+    n_groups_l2 = 10000
 
     # logging
     log_dir = os.path.join(os.path.curdir, 'log')
@@ -48,12 +54,25 @@ def main():
             fp_type=fp_type
         )
 
+        fps_path = 'all.fps'
+
+        reducer = Reducer(fps_path=fps_path,
+                          checkpoint_path=ckpt_dir,
+                          n_clusters=n_groups_l1,
+                          batch_size=1000,
+                          max_iter=500,
+                          init_size=n_groups_l1)
+
         with utils.timing("extracting and calculating fingerprint"):
             data_pipeline.extract(tmp_dir)
             # pack fingerprint as a data file
             data_pipeline.fingerprint(tmp_dir, 'all.fps')
-
-
+        #
+        # if not os.path.exists(ckpt_dir):
+        #     os.makedirs(ckpt_dir)
+        #
+        # with utils.timing("layer 1: {}".format(n_groups_l1)):
+        #     reducer.run()
 
 
 if __name__ == "__main__":
