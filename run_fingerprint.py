@@ -5,12 +5,22 @@ import mpi4py.MPI as MPI
 import sys
 import glob
 
-def split_n(origin_list, n):
+
+def split_n_old(origin_list, n):
     res = [[] for i in range(n)]
-    for i,k in enumerate(origin_list):
-        res[i%n].append(k)
+    for i, k in enumerate(origin_list):
+        res[i % n].append(k)
     for i in res:
         yield i
+
+
+def split_n(origin_list, n):
+    l = len(origin_list)
+    import math
+    res = [origin_list[math.floor(i / n * l):math.floor((i + 1) / n * l)] for i in range(n)]
+    for i in res:
+        yield i
+
 
 def main():
     import argparse
