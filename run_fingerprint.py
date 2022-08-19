@@ -43,7 +43,7 @@ def main():
         # manager process
         paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
         send_buf = [i for i in split_n(paths, comm_size)]
-        sys.stdout.write("mol num:{}".format(len(paths)))
+        sys.stdout.write("mol num:{}\n".format(len(paths)))
         logger.info("mol num:{}".format(len(paths)))
     else:
         send_buf = None
@@ -55,10 +55,12 @@ def main():
     with open(fps_path, 'w') as wf:
         wf.writelines("id\tbase64\n")
 
-    sys.stdout.write("process {} of {} on {}, handling {} mols, to %s\n".format(
+    sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
         comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
-    data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
+    data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path, rank = comm_rank)
+
+    sys.stdout.write("process {} done".format(comm_rank))
 
 
 if __name__ == "__main__":

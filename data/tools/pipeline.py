@@ -119,16 +119,20 @@ class DataPipeline:
         pool.close()
         pool.join()
 
-    def mol2fps_mpi(self, mol_paths, fps_path):
+    def mol2fps_mpi(self, mol_paths, fps_path, rank):
         with open(fps_path, 'w') as wf:
             wf.write("id\tbase64\n")
-            for mol_path in mol_paths:
+            if rank == 0:
+                generator = tqdm(mol_paths)
+            else:
+                generator = mol_paths
+            for mol_path in generator:
                 with open(mol_path) as mol_f:
                     mol_id = _get_id_from_path(mol_path)
                     mol = MolFromPDBQTBlock(mol_f.read())
                     if mol is None:
+                        continue
                         # logger.warning("can't read mol from {}".format(mol_id))
-                        return None
                     base64 = self._mol_to_fingerprint_base64(mol)
                     wf.write("{}\t{}\n".format(mol_id, base64))
 
