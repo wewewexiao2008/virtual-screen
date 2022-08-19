@@ -5,6 +5,12 @@ import mpi4py.MPI as MPI
 import sys
 import glob
 
+def split_n(origin_list, n):
+    res = [[] for i in range(n)]
+    for i,k in enumerate(origin_list):
+        res[i%n].append(k)
+    for i in res:
+        yield i
 
 def main():
     import argparse
@@ -20,12 +26,6 @@ def main():
     out_dir = args.out_dir
     tmp_dir = args.tmp_dir  # './tmp/tmp6sj_2ixi'
 
-    log_dir = os.path.join(os.path.curdir, 'log')
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    log_file = os.path.join(log_dir, 'debug_{time}.log')
-    logger.add(log_file)
-
     data_pipeline = pipeline.DataPipeline()
 
     comm = MPI.COMM_WORLD
@@ -34,14 +34,21 @@ def main():
     proc_name = MPI.Get_processor_name()
 
     if comm_rank == 0:
+        log_dir = os.path.join(os.path.curdir, 'log')
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        log_file = os.path.join(log_dir, 'debug_{time}.log')
+        logger.add(log_file)
+
         # manager process
         paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        send_buf = [i for i in split_n(paths, comm_size)]
         sys.stdout.write("mol num:{}".format(len(paths)))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        paths = None
+        send_buf = None
 
-    local_data = comm.scatter(paths, root=0)
+    local_data = comm.scatter(send_buf, root=0)
 
     fps_path = os.path.join(out_dir, '{}_{} of {}.fps'.format(proc_name, comm_rank, comm_size))
 

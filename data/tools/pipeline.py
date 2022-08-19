@@ -26,6 +26,8 @@ def _extract_single(tar_path, tmp_dir):
 
 
 def _get_id_from_path(path):
+    if path is None:
+        return None
     basename = os.path.basename(path)
     mol_id = os.path.splitext(basename)[0]
     return mol_id
