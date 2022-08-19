@@ -20,9 +20,6 @@ def main():
     out_dir = args.out_dir
     tmp_dir = args.tmp_dir  # './tmp/tmp6sj_2ixi'
 
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
     log_dir = os.path.join(os.path.curdir, 'log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
