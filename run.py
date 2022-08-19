@@ -8,7 +8,7 @@ from model.cluster import Reducer
 def main():
     import argparse
 
-    description = 'A simple command-line interface for virtual flow.'
+    description = 'A simple command-line interface for extracting.'
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument('-d', '--data_dir', type=str, metavar='<data_path>', required=True,
