@@ -58,7 +58,7 @@ def main():
     sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
         comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
-    data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path, rank = comm_rank)
+    data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
 
     sys.stdout.write("process {} done".format(comm_rank))
 

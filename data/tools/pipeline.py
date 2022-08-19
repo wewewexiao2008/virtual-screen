@@ -119,17 +119,16 @@ class DataPipeline:
         pool.close()
         pool.join()
 
-    def mol2fps_mpi(self, mol_paths, fps_path, rank):
+    def mol2fps_mpi(self, mol_paths, fps_path):
         with open(fps_path, 'w') as wf:
             wf.write("id\tbase64\n")
-            if rank == 0:
-                generator = tqdm(mol_paths)
-            else:
-                generator = mol_paths
-            for mol_path in generator:
+            for mol_path in mol_paths:
                 with open(mol_path) as mol_f:
                     mol_id = _get_id_from_path(mol_path)
-                    mol = MolFromPDBQTBlock(mol_f.read())
+                    try:
+                        mol = MolFromPDBQTBlock(mol_f.read())
+                    except Exception as e:
+                        continue
                     if mol is None:
                         continue
                         # logger.warning("can't read mol from {}".format(mol_id))
