@@ -15,9 +15,12 @@ from data.tools.utils import timing
 
 
 class Reducer:
+    """
+    Reducer:
+
+    """
     def __init__(self,
                  fps_path: str,
-                 checkpoint_path: str,
                  n_clusters: int = 3000,
                  batch_size: int = 10000,
                  max_iter: int = 1000,
@@ -25,7 +28,6 @@ class Reducer:
                  ):
 
         self.data_path = fps_path
-        self.ckpt_path = checkpoint_path
         self.n_clusters = n_clusters
         self.batch_size = batch_size
         self.max_iter = max_iter

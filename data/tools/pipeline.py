@@ -35,9 +35,9 @@ class DataPipeline:
     """Tar extractor, format converter, fingerprint wrapper"""
     def __init__(self,
                  *,
-                 data_dir: str,
+                 data_dir: str = '.',
                  fp_type: str = 'morgan',
-                 n_cpu: int):
+                 n_cpu: int = 1):
         """
         :param data_dir: raw data directory
         :param fp_type: 'morgan' or 'maccs'
@@ -116,5 +116,21 @@ class DataPipeline:
             pool.apply_async(func=self._pdbqt2fingerprint, args=(path,), callback=write_callback)
         pool.close()
         pool.join()
+
+    def mol2fps_mpi(self, mol_paths, fps_path):
+        with open(fps_path, 'w') as wf:
+            wf.write("id\tbase64\n")
+            for mol_path in mol_paths:
+                with open(mol_path) as mol_f:
+                    mol_id = _get_id_from_path(mol_path)
+                    mol = MolFromPDBQTBlock(mol_f.read())
+                    if mol is None:
+                        # logger.warning("can't read mol from {}".format(mol_id))
+                        return None
+                    base64 = self._mol_to_fingerprint_base64(mol)
+                    wf.write("{}\t{}\n".format(mol_id, base64))
+
+
+
 
 
