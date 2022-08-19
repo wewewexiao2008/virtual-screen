@@ -5,18 +5,6 @@ import mpi4py.MPI as MPI
 import sys
 import glob
 
-def write_callback(res):
-    if res is not None:
-        with open(pack_filename, 'a') as wf:
-            line = "{}\t{}\n".format(res[0], res[1])
-            wf.write(line)
-
-
-# with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
-# 一级目录 AAAAAA
-logger.info('mol num: {}'.format(len(paths)))
-
-
 
 def main():
     import argparse
@@ -25,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument('-i', '--tmp_dir', type=str, required=True, help='input directory')
-    parser.add_argument('-o', '--out_dir', type=str, required=True, help='fps output dir', default='./out/')
+    parser.add_argument('-o', '--out_dir', type=str, help='fps output dir', default='./out/')
 
     args = parser.parse_args()
 
