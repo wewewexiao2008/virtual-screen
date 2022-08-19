@@ -1,8 +1,21 @@
-import multiprocessing
 import os
 from loguru import logger
 from data.tools import utils, pipeline
-from model.cluster import Reducer
+import mpi4py.MPI as MPI
+import sys
+import glob
+
+def write_callback(res):
+    if res is not None:
+        with open(pack_filename, 'a') as wf:
+            line = "{}\t{}\n".format(res[0], res[1])
+            wf.write(line)
+
+
+# with futures.ProcessPoolExecutor(max_workers=self.n_cpu) as executor:
+# 一级目录 AAAAAA
+logger.info('mol num: {}'.format(len(paths)))
+
 
 
 def main():
@@ -11,15 +24,16 @@ def main():
     description = 'fingerprinting from pdbqt files.'
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument('-o', '--out_path', type=str, metavar='<out_path>', required=True,
-                        help='output directory')
-    parser.add_argument('-n', '--n_cpu', type=int,
-                        help='assign the number of processes.')
+    parser.add_argument('-i', '--tmp_dir', type=str, required=True, help='input directory')
+    parser.add_argument('-o', '--out_dir', type=str, required=True, help='fps output dir', default='./out/')
 
     args = parser.parse_args()
 
-    out_path = args.out_path
-    n_cpu = args.n_cpu
+    out_dir = args.out_dir
+    tmp_dir = args.tmp_dir  # './tmp/tmp6sj_2ixi'
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     log_dir = os.path.join(os.path.curdir, 'log')
     if not os.path.exists(log_dir):
@@ -27,20 +41,32 @@ def main():
     log_file = os.path.join(log_dir, 'debug_{time}.log')
     logger.add(log_file)
 
-    if not os.path.exists('./out/'):
-        os.makedirs('./out/')
+    data_pipeline = pipeline.DataPipeline()
 
-    data_pipeline = pipeline.DataPipeline(
-        data_dir='.',
-        n_cpu=n_cpu,
-        fp_type='morgan'
-    )
+    comm = MPI.COMM_WORLD
+    comm_rank = comm.Get_rank()
+    comm_size = comm.Get_size()
+    proc_name = MPI.Get_processor_name()
 
-    tmp_dir = './tmp/tmp6sj_2ixi'
-    fps_path = os.path.join('./out/', out_path)
+    if comm_rank == 0:
+        # manager process
+        paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        sys.stdout.write("mol num:{}".format(len(paths)))
+        logger.info("mol num:{}".format(len(paths)))
+    else:
+        paths = None
 
-    with utils.timing("calculating fingerprint"):
-        data_pipeline.fingerprint(tmp_dir, fps_path)
+    local_data = comm.scatter(paths, root=0)
+
+    fps_path = os.path.join(out_dir, '{}_{} of {}.fps'.format(proc_name, comm_rank, comm_size))
+
+    with open(fps_path, 'w') as wf:
+        wf.writelines("id\tbase64\n")
+
+    sys.stdout.write("process {} of {} on {}, handling {} mols, to %s\n".format(
+        comm_rank, comm_size, proc_name, len(local_data), fps_path))
+
+    data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
 
 
 if __name__ == "__main__":
