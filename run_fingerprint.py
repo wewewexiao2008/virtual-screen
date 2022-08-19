@@ -34,6 +34,8 @@ def main():
     proc_name = MPI.Get_processor_name()
 
     if comm_rank == 0:
+        if not os.path.exists(out_dir):
+            os.makedirs(out_dir)
         log_dir = os.path.join(os.path.curdir, 'log')
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
