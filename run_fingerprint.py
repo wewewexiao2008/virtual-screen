@@ -63,11 +63,14 @@ def main():
 
         with utils.timing("flattening"):
             def flatten(path):
-                filename = os.path.basename(path)
-                shutil.move(path, os.path.join(tmp_dir, filename))
-            with multiprocessing.Pool(64) as pool:
-                for p in paths:
-                    pool.apply_async(flatten, args=(p,))
+                # filename = os.path.basename(path)
+                shutil.move(path, tmp_dir)
+            pool = multiprocessing.Pool(multiprocessing.cpu_count())
+            sys.stdout.write('cpu count:{}\n'.format(multiprocessing.cpu_count()))
+            for p in paths:
+                pool.apply_async(flatten, args=(p,))
+            pool.close()
+            pool.join()
 
         base_ls = [os.path.basename(p) for p in paths]
 
