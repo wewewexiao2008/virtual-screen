@@ -55,7 +55,8 @@ def main():
         logger.add(log_file)
 
         # manager process
-        paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        with utils.timing("counting pdbqt files"):
+            paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
 
         data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
