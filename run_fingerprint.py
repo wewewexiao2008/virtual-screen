@@ -52,7 +52,9 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    if comm_rank == 0:
+    root = 100
+
+    if comm_rank == root:
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
         log_dir = os.path.join(os.path.curdir, 'log')
@@ -65,20 +67,12 @@ def main():
         with utils.timing("counting pdbqt files"):
             sys.stdout.write("counting pdbqt files...\n")
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
-        #
-        # with utils.timing("flattening"):
-        #
-        #     pool = multiprocessing.Pool(multiprocessing.cpu_count())
-        #     logger.info(multiprocessing.cpu_count())
-        #     for p in paths:
-        #         pool.apply_async(flatten, args=(p, tmp_dir, ))
-        #     pool.close()
-        #     pool.join()
 
-        # base_ls = [os.path.basename(p) for p in paths]
+        blks = [blk for blk in split_n(paths, n_blk)]
         with utils.timing("saving list"):
-            with open("paths.txt", 'wb') as wf:
-                pickle.dump(paths, wf)
+            for blk_id, blk in enumerate(blks):
+                with open("paths_blk{}.txt".format(blk_id), 'wb') as wf:
+                    pickle.dump(blk, wf)
 
         data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
@@ -88,7 +82,7 @@ def main():
 
     for block_id, send_block in enumerate(data):
         local_data = comm.scatter([_ for _ in send_block]
-                                  if send_block is not None else send_block, root=0)
+                                  if send_block is not None else send_block, root=root)
 
         fps_path = os.path.join(out_dir,
                                 '{}-{}_block{}.fps'.format(proc_name, comm_rank, block_id))
@@ -98,8 +92,8 @@ def main():
         sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
             comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
-        if comm_rank == 0:
-            with utils.timing("rank 0: mol to fps, block {}:".format(block_id)):
+        if comm_rank == root:
+            with utils.timing("rank {}: mol to fps, block {}:".format(root,block_id)):
                 data_pipeline.mol2fps_mpi(
                     mol_paths=local_data, fps_path=fps_path)
                 sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
