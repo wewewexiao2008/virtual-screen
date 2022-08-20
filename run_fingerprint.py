@@ -66,7 +66,7 @@ def main():
                 # filename = os.path.basename(path)
                 shutil.move(path, tmp_dir)
             pool = multiprocessing.Pool(multiprocessing.cpu_count())
-            sys.stdout.write('cpu count:{}\n'.format(multiprocessing.cpu_count()))
+            logger.info(multiprocessing.cpu_count())
             for p in paths:
                 pool.apply_async(flatten, args=(p,))
             pool.close()
