@@ -96,7 +96,8 @@ def main():
                 sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
                 logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
         else:
-            data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
+            data_pipeline.mol2fps_mpi(
+                mol_paths=local_data, fps_path=fps_path, tmp_dir=tmp_dir)
             # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 
