@@ -24,6 +24,12 @@ def split_n(origin_list, n):
         yield i
 
 
+def flatten(path, tmp_dir):
+    # filename = os.path.basename(path)
+    logger.info(path)
+    shutil.move(path, tmp_dir)
+
+
 def main():
     import argparse
 
@@ -62,13 +68,11 @@ def main():
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
 
         with utils.timing("flattening"):
-            def flatten(path):
-                # filename = os.path.basename(path)
-                shutil.move(path, tmp_dir)
+
             pool = multiprocessing.Pool(multiprocessing.cpu_count())
             logger.info(multiprocessing.cpu_count())
             for p in paths:
-                pool.apply_async(flatten, args=(p,))
+                pool.apply_async(flatten, args=(p, tmp_dir, ))
             pool.close()
             pool.join()
 
