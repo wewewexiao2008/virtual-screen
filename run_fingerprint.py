@@ -30,11 +30,13 @@ def main():
 
     parser.add_argument('-i', '--tmp_dir', type=str, required=True, help='input directory')
     parser.add_argument('-o', '--out_dir', type=str, help='fps output dir', default='./out/')
+    parser.add_argument('-n', '--num_block', type=int, default=10)
 
     args = parser.parse_args()
 
     out_dir = args.out_dir
     tmp_dir = args.tmp_dir  # './tmp/tmp6sj_2ixi'
+    n_blk = args.num_block
 
     data_pipeline = pipeline.DataPipeline()
 
@@ -55,11 +57,11 @@ def main():
         # manager process
         paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
 
-        data = [split_n(ls, comm_size) for ls in split_n(paths, 10)]
-        sys.stdout.write("mol num:{}\n".format(len(paths)))
+        data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
+        sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        data = [None for _ in range(10)]
+        data = [None for _ in range(n_blk)]
 
     for block_id, send_block in enumerate(data):
         local_data = comm.scatter([_ for _ in send_block]
@@ -74,12 +76,13 @@ def main():
             comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
         if comm_rank == 0:
-            with utils.timing("rank 0: mol to fps:"):
+            with utils.timing("rank 0: mol to fps, block {}:".format(block_id)):
                 data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
                 sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
+                logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
         else:
             data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
-            sys.stdout.write("process: {} {} done\n".format(block_id, comm_rank))
+            # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 
 if __name__ == "__main__":
