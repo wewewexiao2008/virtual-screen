@@ -65,22 +65,22 @@ def main():
         with utils.timing("counting pdbqt files"):
             sys.stdout.write("counting pdbqt files...\n")
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        #
+        # with utils.timing("flattening"):
+        #
+        #     pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        #     logger.info(multiprocessing.cpu_count())
+        #     for p in paths:
+        #         pool.apply_async(flatten, args=(p, tmp_dir, ))
+        #     pool.close()
+        #     pool.join()
 
-        with utils.timing("flattening"):
-
-            pool = multiprocessing.Pool(multiprocessing.cpu_count())
-            logger.info(multiprocessing.cpu_count())
-            for p in paths:
-                pool.apply_async(flatten, args=(p, tmp_dir, ))
-            pool.close()
-            pool.join()
-
-        base_ls = [os.path.basename(p) for p in paths]
+        # base_ls = [os.path.basename(p) for p in paths]
         with utils.timing("saving list"):
             with open("paths.txt", 'wb') as wf:
-                pickle.dump(base_ls, wf)
+                pickle.dump(paths, wf)
 
-        data = [split_n(ls, comm_size) for ls in split_n(base_ls, n_blk)]
+        data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
         logger.info("mol num:{}".format(len(paths)))
     else:
