@@ -59,10 +59,11 @@ def main():
         sys.stdout.write("mol num:{}\n".format(len(paths)))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        data = []
+        data = [None for _ in range(10)]
 
     for block_id, send_block in enumerate(data):
-        local_data = comm.scatter(send_block, root=0)
+        local_data = comm.scatter([_ for _ in send_block]
+                                  if send_block is not None else send_block, root=0)
 
         fps_path = os.path.join(out_dir,
                                 '{}-{}_block{}.fps'.format(proc_name, comm_rank, block_id))
