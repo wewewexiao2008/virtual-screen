@@ -25,8 +25,6 @@ def split_n(origin_list, n):
 
 
 def flatten(path, tmp_dir):
-    # filename = os.path.basename(path)
-    logger.info(path)
     shutil.move(path, tmp_dir)
 
 
