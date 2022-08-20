@@ -56,6 +56,7 @@ def main():
 
         # manager process
         with utils.timing("counting pdbqt files"):
+            sys.stdout.write("counting pdbqt files...\n")
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
 
         data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
