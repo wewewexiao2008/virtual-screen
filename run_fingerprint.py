@@ -54,28 +54,31 @@ def main():
 
         # manager process
         paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
-        send_buf = [i for i in split_n(paths, comm_size)]
+
+        data = [split_n(ls, comm_size) for ls in split_n(paths, 10)]
         sys.stdout.write("mol num:{}\n".format(len(paths)))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        send_buf = None
+        data = []
 
-    local_data = comm.scatter(send_buf, root=0)
+    for block_id, send_block in enumerate(data):
+        local_data = comm.scatter(send_block, root=0)
 
-    fps_path = os.path.join(out_dir, '{}_{} of {}.fps'.format(proc_name, comm_rank, comm_size))
+        fps_path = os.path.join(out_dir,
+                                '{}-{}_block{}.fps'.format(proc_name, comm_rank, block_id))
+        with open(fps_path, 'w') as wf:
+            wf.writelines("id\tbase64\n")
 
-    with open(fps_path, 'w') as wf:
-        wf.writelines("id\tbase64\n")
+        sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
+            comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
-    sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
-        comm_rank, comm_size, proc_name, len(local_data), fps_path))
-    if comm_rank == 0:
-        with utils.timing("rank 0: mol to fps:"):
+        if comm_rank == 0:
+            with utils.timing("rank 0: mol to fps:"):
+                data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
+                sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
+        else:
             data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
-            sys.stdout.write("process {} done\n".format(comm_rank))
-    else:
-        data_pipeline.mol2fps_mpi(mol_paths=local_data, fps_path=fps_path)
-        sys.stdout.write("process {} done\n".format(comm_rank))
+            sys.stdout.write("process: {} {} done\n".format(block_id, comm_rank))
 
 
 if __name__ == "__main__":
