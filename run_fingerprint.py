@@ -6,7 +6,7 @@ import sys
 import glob
 import shutil
 import multiprocessing
-import pickle
+import joblib
 
 
 def split_n_old(origin_list, n):
@@ -72,7 +72,7 @@ def main():
         with utils.timing("saving list"):
             for blk_id, blk in enumerate(blks):
                 with open("paths_blk{}.txt".format(blk_id), 'wb') as wf:
-                    pickle.dump(blk, wf)
+                    joblib.dump(blk, wf, protocol=4)
 
         data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
