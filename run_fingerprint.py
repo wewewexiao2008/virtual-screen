@@ -6,6 +6,7 @@ import sys
 import glob
 import shutil
 import multiprocessing
+import pickle
 
 
 def split_n_old(origin_list, n):
@@ -75,6 +76,11 @@ def main():
             pool.join()
 
         base_ls = [os.path.basename(p) for p in paths]
+        with utils.timing("saving list"):
+            with open("paths.txt", 'w') as wf:
+                pickle.dump(base_ls, wf)
+
+
 
         data = [split_n(ls, comm_size) for ls in split_n(base_ls, n_blk)]
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
