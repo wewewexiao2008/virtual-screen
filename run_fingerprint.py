@@ -101,12 +101,12 @@ def main():
         if comm_rank == 0:
             with utils.timing("rank 0: mol to fps, block {}:".format(block_id)):
                 data_pipeline.mol2fps_mpi(
-                    mol_paths=local_data, fps_path=fps_path, tmp_dir=tmp_dir)
+                    mol_paths=local_data, fps_path=fps_path)
                 sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
                 # logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
         else:
             data_pipeline.mol2fps_mpi(
-                mol_paths=local_data, fps_path=fps_path, tmp_dir=tmp_dir)
+                mol_paths=local_data, fps_path=fps_path)
             # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 

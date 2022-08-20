@@ -119,11 +119,11 @@ class DataPipeline:
         pool.close()
         pool.join()
 
-    def mol2fps_mpi(self, mol_paths, fps_path, tmp_dir):
+    def mol2fps_mpi(self, mol_paths, fps_path):
         with open(fps_path, 'w') as wf:
             wf.write("id\tbase64\n")
             for mol_path in mol_paths:
-                with open(os.path.join(tmp_dir, mol_path), 'r') as mol_f:
+                with open(mol_path, 'r') as mol_f:
                     mol_id = _get_id_from_path(mol_path)
                     try:
                         mol = MolFromPDBQTBlock(mol_f.read())
