@@ -101,14 +101,12 @@ def main():
         comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
     if comm_rank == root:
-        with utils.timing("rank {}: mol to fps, block {}:".format(comm_rank)):
-            data_pipeline.mol2fps_mpi(
-                mol_paths=local_data, fps_path=fps_path)
+        with utils.timing("rank {}: mol to fps:".format(comm_rank)):
+            data_pipeline.mol2fps_mpi(save_path=local_data, fps_path=fps_path)
             sys.stdout.write("process {} done\n".format(comm_rank))
             # logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
     else:
-        data_pipeline.mol2fps_mpi(
-            mol_paths=local_data, fps_path=fps_path)
+        data_pipeline.mol2fps_mpi(save_path=local_data, fps_path=fps_path)
             # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 
