@@ -29,6 +29,11 @@ def flatten(path, tmp_dir):
     shutil.move(path, tmp_dir)
 
 
+def saving(blk_id, blk):
+    with open("paths_blk{}.txt".format(blk_id), 'wb') as wf:
+        joblib.dump(blk, wf, protocol=4, compress=3)
+
+
 def main():
     import argparse
 
@@ -54,6 +59,7 @@ def main():
 
     root = 100
 
+    # manager process
     if comm_rank == root:
         if not os.path.exists(out_dir):
             os.makedirs(out_dir)
@@ -63,44 +69,46 @@ def main():
         log_file = os.path.join(log_dir, 'debug_{time}.log')
         logger.add(log_file)
 
-        # manager process
         with utils.timing("counting pdbqt files"):
             sys.stdout.write("counting pdbqt files...\n")
             paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
 
-        blks = [blk for blk in split_n(paths, n_blk)]
+        blocks = [blk for blk in split_n(paths, n_blk)]
         with utils.timing("saving list"):
-            for blk_id, blk in enumerate(blks):
-                with open("paths_blk{}.txt".format(blk_id), 'wb') as wf:
-                    joblib.dump(blk, wf, protocol=4)
+            pool = multiprocessing.Pool(multiprocessing.cpu_count())
+            logger.info(multiprocessing.cpu_count())
+            # for p in paths:
+            for blk_id, blk in enumerate(blocks):
+                pool.apply_async(saving, args=(blk_id, blk,))
+            pool.close()
+            pool.join()
 
-        data = [split_n(ls, comm_size) for ls in split_n(paths, n_blk)]
+        send_buf = ['paths_blk{}.txt'.format(i) for i in range(n_blk)]
+
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        data = [None for _ in range(n_blk)]
+        send_buf = [None for _ in range(n_blk)]
 
-    for block_id, send_block in enumerate(data):
-        local_data = comm.scatter([_ for _ in send_block]
-                                  if send_block is not None else send_block, root=root)
+    local_data = comm.scatter(send_buf, root=root)
 
-        fps_path = os.path.join(out_dir,
-                                '{}-{}_block{}.fps'.format(proc_name, comm_rank, block_id))
-        with open(fps_path, 'w') as wf:
-            wf.writelines("id\tbase64\n")
+    fps_path = os.path.join(out_dir,
+                            '{}-{}.fps'.format(comm_rank,proc_name))
+    with open(fps_path, 'w') as wf:
+        wf.writelines("id\tbase64\n")
 
-        sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
-            comm_rank, comm_size, proc_name, len(local_data), fps_path))
+    sys.stdout.write("process {} of {} on {}, handling {} mols, to {}\n".format(
+        comm_rank, comm_size, proc_name, len(local_data), fps_path))
 
-        if comm_rank == root:
-            with utils.timing("rank {}: mol to fps, block {}:".format(root,block_id)):
-                data_pipeline.mol2fps_mpi(
-                    mol_paths=local_data, fps_path=fps_path)
-                sys.stdout.write("block: {}, process {} done\n".format(block_id, comm_rank))
-                # logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
-        else:
+    if comm_rank == root:
+        with utils.timing("rank {}: mol to fps, block {}:".format(comm_rank)):
             data_pipeline.mol2fps_mpi(
                 mol_paths=local_data, fps_path=fps_path)
+            sys.stdout.write("process {} done\n".format(comm_rank))
+            # logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
+    else:
+        data_pipeline.mol2fps_mpi(
+            mol_paths=local_data, fps_path=fps_path)
             # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 

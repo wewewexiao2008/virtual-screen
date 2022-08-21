@@ -1,5 +1,7 @@
 import os, glob
 import tarfile
+
+import joblib
 from loguru import logger
 from tqdm import tqdm
 from concurrent import futures
@@ -119,7 +121,8 @@ class DataPipeline:
         pool.close()
         pool.join()
 
-    def mol2fps_mpi(self, mol_paths, fps_path):
+    def mol2fps_mpi(self, save_path, fps_path):
+        mol_paths = joblib.load(save_path, 'rb')
         with open(fps_path, 'w') as wf:
             wf.write("id\tbase64\n")
             for mol_path in mol_paths:
