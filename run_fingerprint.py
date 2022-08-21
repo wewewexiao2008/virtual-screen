@@ -7,6 +7,7 @@ import glob
 import shutil
 import multiprocessing
 import joblib
+from tqdm import tqdm
 
 
 def split_n_old(origin_list, n):
@@ -75,25 +76,26 @@ def main():
 
         blocks = [blk for blk in split_n(paths, n_blk)]
         with utils.timing("saving list"):
-            pool = multiprocessing.Pool(multiprocessing.cpu_count())
-            logger.info(multiprocessing.cpu_count())
+            # pool = multiprocessing.Pool(multiprocessing.cpu_count())
+            # logger.info(multiprocessing.cpu_count())
             # for p in paths:
-            for blk_id, blk in enumerate(blocks):
-                pool.apply_async(saving, args=(blk_id, blk,))
-            pool.close()
-            pool.join()
+            for blk_id, blk in tqdm(enumerate(blocks)):
+                saving(blk_id, blk)
+                # pool.apply_async(saving, args=(blk_id, blk,))
+            # pool.close()
+            # pool.join()
 
         send_buf = ['paths_blk{}.txt'.format(i) for i in range(n_blk)]
 
         sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
         logger.info("mol num:{}".format(len(paths)))
     else:
-        send_buf = [None for _ in range(n_blk)]
+        send_buf = None
 
     local_data = comm.scatter(send_buf, root=root)
 
     fps_path = os.path.join(out_dir,
-                            '{}-{}.fps'.format(comm_rank,proc_name))
+                            '{}-{}.fps'.format(comm_rank, proc_name))
     with open(fps_path, 'w') as wf:
         wf.writelines("id\tbase64\n")
 
