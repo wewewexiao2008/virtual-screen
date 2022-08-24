@@ -60,6 +60,8 @@ def main():
 
     root = 100
 
+    saving_flag = False
+
     # manager process
     if comm_rank == root:
         if not os.path.exists(out_dir):
@@ -70,32 +72,26 @@ def main():
         log_file = os.path.join(log_dir, 'debug_{time}.log')
         logger.add(log_file)
 
-        with utils.timing("counting pdbqt files"):
-            sys.stdout.write("counting pdbqt files...\n")
-            paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+        if saving_flag:
+            with utils.timing("counting pdbqt files"):
+                sys.stdout.write("counting pdbqt files...\n")
+                paths = glob.glob(r'{}/**/*.pdbqt'.format(tmp_dir), recursive=True)
+            blocks = [blk for blk in split_n(paths, n_blk)]
+            with utils.timing("saving list"):
+                for blk_id, blk in tqdm(enumerate(blocks)):
+                    saving(blk_id, blk)
+            sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
+            logger.info("mol num:{}".format(len(paths)))
+        # else:
 
-        blocks = [blk for blk in split_n(paths, n_blk)]
-        with utils.timing("saving list"):
-            # pool = multiprocessing.Pool(multiprocessing.cpu_count())
-            # logger.info(multiprocessing.cpu_count())
-            # for p in paths:
-            for blk_id, blk in tqdm(enumerate(blocks)):
-                saving(blk_id, blk)
-                # pool.apply_async(saving, args=(blk_id, blk,))
-            # pool.close()
-            # pool.join()
+        send_buf = ['./out/paths/paths_blk{}.txt'.format(i) for i in range(n_blk)]
 
-        send_buf = ['paths_blk{}.txt'.format(i) for i in range(n_blk)]
-
-        sys.stdout.write("mol num:{}, blk num:{}\n".format(len(paths), n_blk))
-        logger.info("mol num:{}".format(len(paths)))
     else:
         send_buf = None
 
     local_data = comm.scatter(send_buf, root=root)
 
-    fps_path = os.path.join(out_dir,
-                            '{}-{}.fps'.format(comm_rank, proc_name))
+    fps_path = os.path.join(out_dir,'{}-{}.fps'.format(comm_rank, proc_name))
     with open(fps_path, 'w') as wf:
         wf.writelines("id\tbase64\n")
 
@@ -106,10 +102,8 @@ def main():
         with utils.timing("rank {}: mol to fps:".format(comm_rank)):
             data_pipeline.mol2fps_mpi(save_path=local_data, fps_path=fps_path)
             sys.stdout.write("process {} done\n".format(comm_rank))
-            # logger.info("block: {}, process {} done\n".format(block_id, comm_rank))
     else:
         data_pipeline.mol2fps_mpi(save_path=local_data, fps_path=fps_path)
-            # sys.stdout.write("block: {}, process: {} done\n".format(block_id, comm_rank))
 
 
 if __name__ == "__main__":
