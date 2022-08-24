@@ -12,7 +12,7 @@ def main():
 
     parser.add_argument('-f', '--fps_dir', type=str, required=True)
     parser.add_argument('-o', '--out_dir', type=str, required=True)
-    parser.add_argument('-n', '--n_cpus', type=int, default=1)
+    parser.add_argument('-n', '--n_cpus', type=int, default=576)
 
     args = parser.parse_args()
 
@@ -20,7 +20,9 @@ def main():
     out_dir = args.out_dir
     n_cpus = args.n_cpus
 
-    fps_paths = glob.glob(r'{}/*.fps')
+    fps_paths = glob.glob(r'out/paths/*.fps')
+
+    print(fps_paths)
 
     reducer = Reducer(
         n_clusters=3000,
@@ -29,8 +31,7 @@ def main():
         init_size=3000
     )
 
-    """stage 1"""
-    reducer.run()
+
 
 
 
