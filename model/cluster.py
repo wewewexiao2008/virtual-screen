@@ -61,7 +61,10 @@ class Reducer:
             toc = time.time()
 
         # label
-        df['group_1'] = y
+        df_new = pd.DataFrame()
+        df_new['id'] = df['id']
+        df_new['gp1'] = y
+        df_new.to_csv(fps_path)
         t_train = toc-tic
 
 

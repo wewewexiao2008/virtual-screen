@@ -85,13 +85,14 @@ def main():
         # else:
 
         send_buf = ['./out/paths/paths_blk{}.txt'.format(i) for i in range(n_blk)]
+        logger.info("blk num:{}".format(len(send_buf)))
 
     else:
         send_buf = None
 
     local_data = comm.scatter(send_buf, root=root)
 
-    fps_path = os.path.join(out_dir,'{}-{}.fps'.format(comm_rank, proc_name))
+    fps_path = os.path.join(out_dir, '{}-{}.fps'.format(comm_rank, proc_name))
     with open(fps_path, 'w') as wf:
         wf.writelines("id\tbase64\n")
 
