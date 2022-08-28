@@ -1,5 +1,5 @@
 import os
-os.environ['OPENBLAS_NUM_THREADS'] = '60'
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 import glob
 import sys
