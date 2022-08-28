@@ -94,8 +94,6 @@ def main():
         df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
 
 
-
-
 if __name__ == "__main__":
     main()
 
