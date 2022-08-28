@@ -47,7 +47,7 @@ def main():
         init_size=nc_layer2
     )
 
-    root = 100
+    root = 0
     verbose = True if comm_rank == root else False
     if comm_rank == root:
         log_dir = os.path.join(os.path.curdir, 'log')
@@ -87,6 +87,7 @@ def main():
     df_final = pd.concat(l2_dfs)
     try:
         df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
+
     except Exception as e:
         os.makedirs('{}/layer2'.format(out_dir))
         df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')

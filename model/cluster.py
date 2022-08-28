@@ -61,6 +61,9 @@ class Reducer:
             DataStructs.ConvertToNumpyArray(_fp, arr)
             fps.append(arr)
 
+        if verbose:
+            logger.info("fps loaded")
+
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
