@@ -1,5 +1,5 @@
 import os
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
+os.environ['OPENBLAS_NUM_THREADS'] = '60'
 
 import glob
 import sys
@@ -57,7 +57,7 @@ def main():
         logger.add(log_file)
 
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
-        send_buf = [i for i in split_n(fps_paths, 64)]
+        send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
         send_buf = None
 
