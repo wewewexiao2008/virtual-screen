@@ -13,6 +13,7 @@ import numpy as np
 import mpi4py.MPI as MPI
 
 
+
 def main():
 
     description = 'Multi layer K-means'
