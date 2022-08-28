@@ -1,5 +1,5 @@
 import os
-os.environ['OPENBLAS_NUM_THREADS'] = '12'
+os.environ['OPENBLAS_NUM_THREADS'] = '60'
 
 import glob
 import sys
@@ -65,11 +65,9 @@ def main():
     local_data = comm.scatter(send_buf, root=root)
 
     """Layer1"""
-    sys.stdout.write("Running Layer1...\n")
-    df_raw = pd.read_csv(local_data, delimiter='\t')
-    if verbose:
-        logger.info("cluster data amount: {}".format(len(df_raw)))
-    df = l1_reducer.run_with_fps(df_raw, verbose)
+    if comm_rank == root:
+        sys.stdout.write("Running Layer1...\n")
+    df = l1_reducer.run_with_fps(local_data, verbose)
 
     try:
         df.to_csv('{}/layer1/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
@@ -78,7 +76,8 @@ def main():
         df.to_csv('{}/layer1/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
 
     """Layer2"""
-    sys.stdout.write("Running Layer2...\n")
+    if comm_rank == root:
+        sys.stdout.write("Running Layer2...\n")
     l2_dfs = []
     for i in range(nc_layer1):
         _df = df[df['layer_1'] == i]
