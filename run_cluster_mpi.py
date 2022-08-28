@@ -1,4 +1,5 @@
 import glob
+import sys
 
 from loguru import logger
 
@@ -8,6 +9,9 @@ import pandas as pd
 import numpy as np
 import mpi4py.MPI as MPI
 import os
+
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 
 def main():
 
@@ -61,6 +65,7 @@ def main():
     local_data = comm.scatter(send_buf, root=root)
 
     """Layer1"""
+    sys.stdout.write("Running Layer1...\n")
     df_raw = pd.read_csv(local_data, delimiter='\t')
     if verbose:
         logger.info("cluster data amount: {}".format(len(df_raw)))
@@ -73,6 +78,7 @@ def main():
         df.to_csv('{}/layer1/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
 
     """Layer2"""
+    sys.stdout.write("Running Layer2...\n")
     l2_dfs = []
     for i in range(nc_layer1):
         _df = df[df['layer_1'] == i]
