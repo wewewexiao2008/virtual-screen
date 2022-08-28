@@ -57,7 +57,7 @@ def main():
         logger.add(log_file)
 
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
-        send_buf = fps_paths
+        send_buf = fps_paths[0:comm_size]
     else:
         send_buf = None
 
