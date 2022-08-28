@@ -57,7 +57,7 @@ class Reducer:
         for i in df['base64']:
             _fp = ExplicitBitVect(0)
             ExplicitBitVect.FromBase64(_fp, i)
-            arr = np.zeros((1,))
+            arr = np.zeros((1,), dtype='i1')
             DataStructs.ConvertToNumpyArray(_fp, arr)
             fps.append(arr)
 
