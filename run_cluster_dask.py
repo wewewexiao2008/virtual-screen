@@ -1,5 +1,7 @@
-import glob
 import os
+
+os.environ['OPENBLAS_NUM_THREADS'] = '60'
+import glob
 import sys
 
 from loguru import logger
