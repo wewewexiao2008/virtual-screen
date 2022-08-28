@@ -11,7 +11,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import mpi4py.MPI as MPI
-
+from data.tools.utils import split_n
 
 def main():
 
@@ -57,40 +57,43 @@ def main():
         logger.add(log_file)
 
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
-        send_buf = fps_paths[0:comm_size]
+        send_buf = [i for i in split_n(fps_paths, 64)]
     else:
         send_buf = None
 
     # path list
     local_data = comm.scatter(send_buf, root=root)
 
-    """Layer1"""
-    if comm_rank == root:
-        sys.stdout.write("Running Layer1...\n")
-    df = l1_reducer.run_with_fps(local_data, verbose)
+    for i, fps_path in enumerate(local_data):
+        """Layer1"""
+        if comm_rank == root:
+            sys.stdout.write("{}:{} running Layer1...\n".format(i, fps_path))
+        df = l1_reducer.run_with_fps(fps_path, verbose)
 
-    try:
-        df.to_csv('{}/layer1/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
-    except Exception as e:
-        os.makedirs('{}/layer1'.format(out_dir))
-        df.to_csv('{}/layer1/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
+        try:
+            df.to_csv('{}/layer1/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i), sep='\t')
+        except Exception as e:
+            os.makedirs('{}/layer1'.format(out_dir))
+            df.to_csv('{}/layer1/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i), sep='\t')
 
-    """Layer2"""
-    if comm_rank == root:
-        sys.stdout.write("Running Layer2...\n")
-    l2_dfs = []
-    for i in range(nc_layer1):
-        _df = df[df['layer_1'] == i]
-        _df = l2_reducer.run_with_df(_df, verbose)
-        l2_dfs.append(_df)
+        """Layer2"""
+        if comm_rank == root:
+            sys.stdout.write("{}:{} running Layer2...\n".format(i, fps_path))
+        l2_dfs = []
+        for j in range(nc_layer1):
+            _df = df[df['layer_1'] == j]
+            _df = l2_reducer.run_with_df(_df, verbose)
+            l2_dfs.append(_df)
 
-    df_final = pd.concat(l2_dfs)
-    try:
-        df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
+        df_final = pd.concat(l2_dfs)
+        try:
+            df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i),
+                                                          sep='\t')
 
-    except Exception as e:
-        os.makedirs('{}/layer2'.format(out_dir))
-        df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, comm_rank), sep='\t')
+        except Exception as e:
+            os.makedirs('{}/layer2'.format(out_dir))
+            df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i),
+                                                          sep='\t')
 
 
 if __name__ == "__main__":

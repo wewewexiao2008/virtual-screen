@@ -26,4 +26,12 @@ def timing(msg: str):
     tic = time.time()
     yield
     toc = time.time()
-    logger.info('Finished %s in %.3f seconds'%(msg, toc - tic))
+    logger.info('Finished %s in %.3f seconds' % (msg, toc - tic))
+
+
+def split_n(origin_list, n):
+    l = len(origin_list)
+    import math
+    res = [origin_list[math.floor(i / n * l):math.floor((i + 1) / n * l)] for i in range(n)]
+    for i in res:
+        yield i
