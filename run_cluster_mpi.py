@@ -10,7 +10,7 @@ import numpy as np
 import mpi4py.MPI as MPI
 import os
 
-os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 
 
 def main():
@@ -95,6 +95,8 @@ def main():
 
 
 
-
+if __name__ == "__main__":
+    os.environ['OPENBLAS_NUM_THREADS'] = '1'
+    main()
 
 
