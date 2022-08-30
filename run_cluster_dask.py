@@ -17,43 +17,43 @@ import joblib
 
 def main():
     client = Client(processes=False)  # create local cluster
+    description = 'Multi layer K-means'
+    parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument('-f', '--fps_dir', type=str, required=True)
+    parser.add_argument('-o', '--out_dir', type=str, required=True)
+
+    args = parser.parse_args()
+
+    fps_dir = args.fps_dir
+    out_dir = args.out_dir
+
+    nc_layer1 = 1000
+    nc_layer2 = 2000
+
+    l1_reducer = Reducer(
+        n_clusters=nc_layer1,
+        batch_size=1000,
+        max_iter=1000,
+        init_size=nc_layer1
+    )
+    l2_reducer = Reducer(
+        n_clusters=nc_layer2,
+        batch_size=1000,
+        max_iter=1000,
+        init_size=nc_layer2
+    )
+
+    root = 0
+    verbose = True
+
+    log_dir = os.path.join(os.path.curdir, 'log')
+    log_file = os.path.join(log_dir, 'debug_{time}.log')
+    logger.add(log_file)
+
+    fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
+
     with joblib.parallel_backend('dask'):
-        description = 'Multi layer K-means'
-        parser = argparse.ArgumentParser(description=description)
-
-        parser.add_argument('-f', '--fps_dir', type=str, required=True)
-        parser.add_argument('-o', '--out_dir', type=str, required=True)
-
-        args = parser.parse_args()
-
-        fps_dir = args.fps_dir
-        out_dir = args.out_dir
-
-        nc_layer1 = 1000
-        nc_layer2 = 2000
-
-        l1_reducer = Reducer(
-            n_clusters=nc_layer1,
-            batch_size=1000,
-            max_iter=1000,
-            init_size=nc_layer1
-        )
-        l2_reducer = Reducer(
-            n_clusters=nc_layer2,
-            batch_size=1000,
-            max_iter=1000,
-            init_size=nc_layer2
-        )
-
-        root = 0
-        verbose = True
-
-        log_dir = os.path.join(os.path.curdir, 'log')
-        log_file = os.path.join(log_dir, 'debug_{time}.log')
-        logger.add(log_file)
-
-        fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
-
         for i, fps_path in enumerate(fps_paths):
             """Layer1"""
             # if comm_rank == root:
