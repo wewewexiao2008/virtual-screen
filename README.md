@@ -1,4 +1,4 @@
-# 20220817-virtual-clustering
+# 20220831-virtual-clustering
 - [x] 完成tar包解压 进程池并行
 - [x] 完成指纹计算base64位存储 mpi并行，分成了 576 block，每个200w分子(200M的存储空间)
 - [ ] 读取base64指纹到numpy数组
