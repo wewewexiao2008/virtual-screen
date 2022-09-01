@@ -52,46 +52,48 @@ class Reducer:
         self.init_size = init_size
         self.layer = layer
 
-    def mb_kmeans(self, df, verbose=False, save=False):
-        fps = []
-        for i in df['base64']:
-            _fp = ExplicitBitVect(0)
-            ExplicitBitVect.FromBase64(_fp, i)
-            arr = np.zeros((1,), dtype='i1')
-            DataStructs.ConvertToNumpyArray(_fp, arr)
-            fps.append(arr)
-
-        if verbose:
-            logger.info("fps loaded")
+    def mb_kmeans(self, X, verbose=False, save=False):
 
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
                                      init_size=self.init_size,
-                                     init='k-means++', verbose=0, compute_labels=True,
+                                     init='k-means++', verbose=0, compute_labels=False,
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
         if verbose:
-            with timing("running mb-kmeans"):
-                y = clustering.fit_predict(fps)
+            with timing("running mb-kmeans "):
+                y = clustering.fit_predict(X)
         else:
-            y = clustering.fit_predict(fps)
+            y = clustering.fit_predict(X)
 
         if save:
             joblib.dump(clustering, '{}'.format())
 
-        df['layer_{}'.format(self.layer)] = y
-        return df
+        return clustering.inertia_
 
     def run_with_fps(self, fps_path, verbose=False):
         """main procedure"""
-        df = pd.read_csv(fps_path, delimiter='\t')
+        with timing("loading csv"):
+            df = pd.read_csv(fps_path, delimiter='\t')
         if verbose:
             logger.info("cluster data amount: {}".format(len(df)))
-        return self.mb_kmeans(df, verbose=verbose)
+
+        X = []
+        with timing("parsing base64"):
+            for i in df['base64']:
+                _fp = ExplicitBitVect(0)
+                ExplicitBitVect.FromBase64(_fp, i)
+                arr = np.zeros((1,), dtype='i1')
+                DataStructs.ConvertToNumpyArray(_fp, arr)
+                X.append(arr)
+        # if verbose:
+        #     logger.info("fps loaded")
+        inertia = self.mb_kmeans(X, verbose=verbose)
+        return fps_path, inertia
 
     def run_with_df(self, df, verbose=False):
         if verbose:
             logger.info("cluster data amount: {}".format(len(df)))
-        return self.mb_kmeans(df, verbose=verbose)
+        res = self.mb_kmeans(df, verbose=verbose)
