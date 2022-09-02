@@ -15,6 +15,8 @@ import numpy as np
 import datetime
 # module in the same directory
 from model.cluster import Reducer
+from data.tools.utils import timing
+
 
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(FILE_DIR)
@@ -39,7 +41,7 @@ logger.info("args.profile: {0}".format(profile))
 c = Client(profile=profile)
 NB_WORKERS = int(os.environ.get("NB_WORKERS", 1))
 # wait for the engines
-c.wait(timeout=2)
+c.wait(timeout=5)
 
 # The following command will make sure that each engine is running in
 # the right working directory to access the custom function(s).
@@ -49,7 +51,7 @@ bview = c.load_balanced_view()
 register_parallel_backend('ipyparallel',
                           lambda: IPythonParallelBackend(view=bview))
 
-# Create data
+
 # prepare it for the custom function
 # some parameters to test in parallel
 param_space = {
@@ -73,11 +75,13 @@ l2_reducer = Reducer(
     init_size=nc_layer2
 )
 
+# with timing("parallel backend"):
 with parallel_backend('ipyparallel'):
     inertia = Parallel(n_jobs=len(c))(
         delayed(l1_reducer.run_with_fps)(fps_path, True)
         for fps_path in param_space['paths'])
 
+logger.info("done")
 # write down the number of clusters and the total inertia in a file.
 with open(os.path.join(FILE_DIR, 'scores_kmeans.csv'), 'w') as f:
     f.write('fps_path,inertia,\n')
