@@ -18,25 +18,7 @@ now = datetime.datetime.now
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def show_raw_mols(df, mol_dir, layer1, layer2, out_dir):
-    mols = []
-    ids = []
-    for mol_id in df[(df['layer1'] == layer1) & (df['layer2'] == layer2)]:
-        _ls = glob.glob(r'{}/**/{}.pdbqt'.format(mol_dir, mol_id), recursive=True)
-        mol_path = _ls[0]
-        with open(mol_path, 'r') as mol_f:
-            mol = MolFromPDBQTBlock(mol_f.read())
-        mols.append(mol)
-        ids.append(mol_id)
 
-    img = Draw.MolsToGridImage(
-        mols,
-        molsPerRow=4,
-        subImgSize=(200, 200),
-        legends=[i for i in ids]
-    )
-
-    img.save('{}/{}_{}.png'.format(out_dir, layer1, layer2))
 
 
 def parse_base64(df):
@@ -94,7 +76,8 @@ class Reducer:
                 for i, x_batch in enumerate(split_n(X, n_batches)):
                     if i % 100 == 0:
                         logger.info("{}/{} done".format(i, n_batches))
-                    clustering = clustering.partial_fit(x_batch)
+                    if len(x_batch) >= self.n_clusters:
+                        clustering = clustering.partial_fit(x_batch)
         else:
             for x_batch in split_n(X, n_batches):
                 clustering = clustering.partial_fit(x_batch)

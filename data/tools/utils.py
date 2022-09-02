@@ -1,4 +1,5 @@
 import contextlib
+import glob
 import shutil
 import tempfile
 import time
@@ -6,6 +7,10 @@ from typing import Optional
 from loguru import logger
 # from absl
 import math
+
+from rdkit.Chem import Draw
+
+from scripts.rdkit2pdbqt import MolFromPDBQTBlock
 
 
 @contextlib.contextmanager
@@ -28,6 +33,31 @@ def timing(msg: str):
     yield
     toc = time.time()
     logger.info('Finished %s in %.3f seconds' % (msg, toc - tic))
+
+
+def show_raw(df, mol_dir, layer1, layer2, out_dir='.', save=False):
+    mols = []
+    ids = []
+    for mol_id in df[(df['layer1'] == layer1) & (df['layer2'] == layer2)]:
+        _ls = glob.glob(r'{}/**/{}.pdbqt'.format(mol_dir, mol_id), recursive=True)
+        if len(_ls) == 0:
+            continue
+        mol_path = _ls[0]
+        with open(mol_path, 'r') as mol_f:
+            mol = MolFromPDBQTBlock(mol_f.read())
+        mols.append(mol)
+        ids.append(mol_id)
+
+    img = Draw.MolsToGridImage(
+        mols,
+        molsPerRow=4,
+        subImgSize=(200, 200),
+        legends=[i for i in ids]
+    )
+    if save:
+        img.save('{}/{}_{}.png'.format(out_dir, layer1, layer2))
+
+    return img
 
 
 def split_n(origin_list, n):
