@@ -20,11 +20,13 @@ def main():
 
     parser.add_argument('-f', '--fps_dir', type=str, required=True)
     parser.add_argument('-o', '--out_dir', type=str, required=True)
+    parser.add_argument('-l', '--log_dir', type=str)
 
     args = parser.parse_args()
 
     fps_dir = args.fps_dir
     out_dir = args.out_dir
+    log_dir = args.log_dir
 
     comm = MPI.COMM_WORLD
     comm_rank = comm.Get_rank()
@@ -36,23 +38,21 @@ def main():
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
-        batch_size=1000,
-        max_iter=1000,
+        batch_size=100,
+        max_iter=100,
         init_size=nc_layer1
     )
     l2_reducer = Reducer(
         n_clusters=nc_layer2,
-        batch_size=1000,
-        max_iter=1000,
+        batch_size=100,
+        max_iter=100,
         init_size=nc_layer2
     )
 
     root = 0
     verbose = True if comm_rank == root else False
     if comm_rank == root:
-        log_dir = os.path.join(os.path.curdir, 'log')
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
+
         log_file = os.path.join(log_dir, 'debug_{time}.log')
         logger.add(log_file)
 
@@ -68,7 +68,7 @@ def main():
         """Layer1"""
         if comm_rank == root:
             sys.stdout.write("{}:{} running Layer1...\n".format(i, fps_path))
-        df = l1_reducer.run_with_fps(fps_path, verbose)
+        _, inertia = l1_reducer.run_with_fps(fps_path, verbose)
 
         try:
             df.to_csv('{}/layer1/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i), sep='\t')

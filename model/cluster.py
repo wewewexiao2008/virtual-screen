@@ -10,7 +10,13 @@ from loguru import logger
 from rdkit.Chem import Draw
 from scripts.rdkit2pdbqt import MolFromPDBQTBlock
 from data.tools.utils import timing
+import datetime
+import os
+import socket
 
+
+now = datetime.datetime.now
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def show_raw_mols(df, mol_dir, group_id, out_dir):
     mols = []
@@ -52,45 +58,72 @@ class Reducer:
         self.init_size = init_size
         self.layer = layer
 
-    def mb_kmeans(self, X, verbose=False, save=False):
+    def mb_kmeans(self, X, verbose=False):
 
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
                                      init_size=self.init_size,
-                                     init='k-means++', verbose=0, compute_labels=False,
+                                     init='k-means++', verbose=0, compute_labels=True,
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
-        if verbose:
-            with timing("running mb-kmeans "):
-                y = clustering.fit_predict(X)
-        else:
-            y = clustering.fit_predict(X)
+        y = clustering.fit_predict(X)
+        return y, clustering.inertia_
 
-        if save:
-            joblib.dump(clustering, '{}'.format())
-
-        return clustering.inertia_
-
-    def run_with_fps(self, fps_path, verbose=False):
+    def run_with_fps(self, fps_path, file_path, out_path, verbose=False):
         """main procedure"""
-        with timing("loading csv"):
-            df = pd.read_csv(fps_path, delimiter='\t')
+
+        with open(file_path+".log", 'a+') as f:
+            f.write('job started on {0}\n'.format(socket.gethostname()))
+            f.write('new task for fps_path='+str(fps_path)+'\n')
+
+        df = pd.read_csv(fps_path, delimiter='\t')
+        # with timing("loading csv"):
         if verbose:
-            logger.info("cluster data amount: {}".format(len(df)))
+            with open(file_path+".log", 'a+') as f:
+                f.write("cluster data amount: {}\n".format(len(df)))
 
         X = []
-        with timing("parsing base64"):
-            for i in df['base64']:
-                _fp = ExplicitBitVect(0)
-                ExplicitBitVect.FromBase64(_fp, i)
-                arr = np.zeros((1,), dtype='i1')
-                DataStructs.ConvertToNumpyArray(_fp, arr)
-                X.append(arr)
-        # if verbose:
-        #     logger.info("fps loaded")
-        inertia = self.mb_kmeans(X, verbose=verbose)
+        if verbose:
+            t0 = now()
+            with open(file_path+".log", 'a+') as f:
+                f.write('Start reading as numpy at {0}\n'.format(t0.isoformat())) 
+
+        for i in df['base64']:
+            _fp = ExplicitBitVect(0)
+            ExplicitBitVect.FromBase64(_fp, i)
+            arr = np.zeros((1,), dtype=np.bool_)
+            DataStructs.ConvertToNumpyArray(_fp, arr)
+            X.append(arr)
+
+        if verbose:
+            t1 = now()
+            h = (t1-t0).total_seconds()//3600
+            m = (t1-t0).total_seconds()//60 - h*60
+            s = (t1-t0).total_seconds() -m*60 - h*60
+            with open(file_path+".log", 'w') as f:
+                f.write('Finished at {0} after '
+                        '{1}h {2}min {3:0.2f}s\n'.format(t1.isoformat(),h,m,s))
+
+        if verbose:
+            t0 = now()
+            with open(file_path+".log", 'a+') as f:
+                f.write('Start fit and predict at {0}\n'.format(t0.isoformat())) 
+
+        y, inertia = self.mb_kmeans(X, verbose=verbose) 
+
+        if verbose:
+            t1 = now()
+            h = (t1-t0).total_seconds()//3600
+            m = (t1-t0).total_seconds()//60 - h*60
+            s = (t1-t0).total_seconds() -m*60 - h*60
+            with open(file_path+".log", 'a+') as f:
+                f.write('Finished at {0} after '
+                        '{1}h {2}min {3:0.2f}s\n'.format(t1.isoformat(),h,m,s))
+
+        joblib.dump(y, out_path + ".result")
+
         return fps_path, inertia
 
     def run_with_df(self, df, verbose=False):
