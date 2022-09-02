@@ -58,7 +58,7 @@ def main():
     verbose = True if comm_rank == root else False
     if comm_rank == root:
         logger.add(os.path.join(log_dir, 'debug.log'))
-        logger.info()
+        logger.info("comm_size = {}".format(comm_size))
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
         send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
