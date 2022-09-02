@@ -9,7 +9,7 @@ from sklearn.cluster import MiniBatchKMeans
 from loguru import logger
 from rdkit.Chem import Draw
 from scripts.rdkit2pdbqt import MolFromPDBQTBlock
-from data.tools.utils import timing
+from data.tools.utils import timing, split_n
 import datetime
 import os
 import socket
@@ -47,6 +47,9 @@ def read_base64(df):
         arr = np.zeros((1,), dtype=np.bool_)
         DataStructs.ConvertToNumpyArray(_fp, arr)
         res.append(arr)
+
+    res = np.array(res)
+    res.astype(np.bool_)
     return res
 
 
@@ -71,10 +74,9 @@ class Reducer:
         self.layer = layer
 
     def mb_kmeans(self, X, verbose):
-        x = np.array(X)
-        x.astype(np.bool_)
+
         if verbose:
-            logger.info("shape: {}, itemsize: {}".format(x.shape, x.itemsize))
+            logger.info("shape: {}, itemsize: {}".format(X.shape, X.itemsize))
 
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
@@ -84,7 +86,22 @@ class Reducer:
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
-        y = clustering.fit_predict(x)
+        n_samples, n_features = X.shape
+        n_batches = int(np.ceil(float(n_samples) / self.batch_size))
+
+        if verbose:
+            for i, x_batch in enumerate(split_n(X, n_batches)):
+                with timing("partial fitting...{}/{}".format(i, n_batches)):
+                    clustering = clustering.partial_fit(x_batch)
+        else:
+            for x_batch in split_n(X, n_batches):
+                clustering = clustering.partial_fit(x_batch)
+
+        if verbose:
+            with timing("predicting..."):
+                y = clustering.predict(X)
+        else:
+
         return y, clustering.inertia_
 
     def run_with_fps_mpi(self, fps_path, out_path, col, verbose):
@@ -98,7 +115,7 @@ class Reducer:
 
     def run_with_df_mpi(self, df, out_path, col, verbose):
         if verbose:
-            with timing("reading csv"):
+            with timing("reading base64"):
                 X = read_base64(df)
         else:
             X = read_base64(df)

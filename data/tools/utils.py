@@ -5,6 +5,7 @@ import time
 from typing import Optional
 from loguru import logger
 # from absl
+import math
 
 
 @contextlib.contextmanager
@@ -31,7 +32,6 @@ def timing(msg: str):
 
 def split_n(origin_list, n):
     l = len(origin_list)
-    import math
     res = [origin_list[math.floor(i / n * l):math.floor((i + 1) / n * l)] for i in range(n)]
     for i in res:
         yield i

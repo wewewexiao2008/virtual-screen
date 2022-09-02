@@ -43,14 +43,14 @@ def main():
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
-        batch_size=100,
-        max_iter=100,
+        batch_size=1024,
+        max_iter=1000,
         init_size=nc_layer1
     )
     l2_reducer = Reducer(
         n_clusters=nc_layer2,
-        batch_size=100,
-        max_iter=100,
+        batch_size=1000,
+        max_iter=1000,
         init_size=nc_layer2
     )
 
@@ -58,6 +58,7 @@ def main():
     verbose = True if comm_rank == root else False
     if comm_rank == root:
         logger.add(os.path.join(log_dir, 'debug.log'))
+        logger.info()
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
         send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
@@ -72,7 +73,7 @@ def main():
         out_path = os.path.join(out_dir, basename + '.layer1')
 
         if verbose:
-            with timing("running {} layer1".format(fps_path)):
+            with timing("running {} layer1".format(basename)):
                 df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
         else:
             df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
