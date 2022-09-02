@@ -60,6 +60,12 @@ class Reducer:
         if verbose:
             logger.info("shape: {}, itemsize: {}".format(X.shape, X.itemsize))
 
+        n_samples, n_features = X.shape
+        n_batches = int(np.ceil(float(n_samples) / self.batch_size))
+
+        if n_samples < self.n_clusters:
+            self.n_clusters = n_samples
+
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
@@ -68,8 +74,7 @@ class Reducer:
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
-        n_samples, n_features = X.shape
-        n_batches = int(np.ceil(float(n_samples) / self.batch_size))
+
 
         if verbose:
             with timing("partial fitting..."):

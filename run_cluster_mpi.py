@@ -83,7 +83,7 @@ def main():
         stat_ls = []
         # layer 1 inertia
         for j in range(nc_layer1):
-            if comm_rank == root and j % 100 == 0:
+            if verbose and j % 100 == 0:
                 logger.info("Layer2: {}/{} done".format(j, nc_layer1))
 
             _df = df[df['layer1'] == j]
