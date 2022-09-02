@@ -15,7 +15,7 @@ from dask.distributed import Client
 import joblib
 
 
-def main():
+if __name__ == "__main__":
     client = Client(processes=False)  # create local cluster
     description = 'Multi layer K-means'
     parser = argparse.ArgumentParser(description=description)
@@ -80,7 +80,3 @@ def main():
             except Exception as e:
                 os.makedirs('{}/layer2'.format(out_dir))
                 df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}.tsv'.format(out_dir, i), sep='\t')
-
-
-if __name__ == "__main__":
-    main()

@@ -39,7 +39,7 @@ logger.info("args.profile: {0}".format(profile))
 c = Client(profile=profile)
 NB_WORKERS = int(os.environ.get("NB_WORKERS", 1))
 # wait for the engines
-c.wait_for_engines(NB_WORKERS)
+c.wait(timeout=2)
 
 # The following command will make sure that each engine is running in
 # the right working directory to access the custom function(s).

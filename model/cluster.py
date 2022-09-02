@@ -58,7 +58,7 @@ class Reducer:
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
                                      init_size=self.init_size,
-                                     init='k-means++', verbose=0, compute_labels=False,
+                                     init='k-means++', verbose=0, compute_labels=True,
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
