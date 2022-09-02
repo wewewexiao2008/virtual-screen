@@ -101,6 +101,7 @@ class Reducer:
             with timing("predicting..."):
                 y = clustering.predict(X)
         else:
+            y = clustering.predict(X)
 
         return y, clustering.inertia_
 
