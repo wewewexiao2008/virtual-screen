@@ -1,4 +1,7 @@
 import os
+
+import joblib
+
 os.environ['OPENBLAS_NUM_THREADS'] = '60'
 
 import glob
@@ -11,10 +14,12 @@ import argparse
 import pandas as pd
 import numpy as np
 import mpi4py.MPI as MPI
-from data.tools.utils import split_n
+from data.tools.utils import split_n, timing
+
+FILE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def main():
-
     description = 'Multi layer K-means'
     parser = argparse.ArgumentParser(description=description)
 
@@ -33,8 +38,8 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    nc_layer1 = comm_size*2
-    nc_layer2 = comm_size*4
+    nc_layer1 = comm_size * 2
+    nc_layer2 = comm_size * 4
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
@@ -52,10 +57,7 @@ def main():
     root = 0
     verbose = True if comm_rank == root else False
     if comm_rank == root:
-
-        log_file = os.path.join(log_dir, 'debug_{time}.log')
-        logger.add(log_file)
-
+        logger.add(os.path.join(log_dir, 'debug.log'))
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
         send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
@@ -66,37 +68,38 @@ def main():
 
     for i, fps_path in enumerate(local_data):
         """Layer1"""
-        if comm_rank == root:
-            sys.stdout.write("{}:{} running Layer1...\n".format(i, fps_path))
-        _, inertia = l1_reducer.run_with_fps(fps_path, verbose)
+        basename = os.path.basename(fps_path)
+        out_path = os.path.join(out_dir, basename + '.layer1')
 
-        try:
-            df.to_csv('{}/layer1/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i), sep='\t')
-        except Exception as e:
-            os.makedirs('{}/layer1'.format(out_dir))
-            df.to_csv('{}/layer1/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i), sep='\t')
+        if comm_rank == root:
+            with timing("running {} layer1".format(fps_path)):
+                df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1')
+        else:
+            df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1')
 
         """Layer2"""
-        if comm_rank == root:
-            sys.stdout.write("{}:{} running Layer2...\n".format(i, fps_path))
         l2_dfs = []
+        stat_df = pd.DataFrame(columns=['inertia'])
+        # layer 1 inertia
+        stat_df.append(inertia)
         for j in range(nc_layer1):
-            _df = df[df['layer_1'] == j]
-            _df = l2_reducer.run_with_df(_df, verbose)
+            if comm_rank == root and j % 100 == 0:
+                logger.info("Layer2: {}/{} done".format(j, nc_layer1))
+
+            _df = df[df['layer1'] == j]
+            out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
+            _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2')
             l2_dfs.append(_df)
+            stat_df.append(inertia)
+
+        stat_df.to_csv(os.path.join(out_dir, basename + '.stat'))
+        if comm_rank == root:
+            logger.info("output stat to {}".format(basename + '.stat'))
 
         df_final = pd.concat(l2_dfs)
-        try:
-            df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i),
-                                                          sep='\t')
 
-        except Exception as e:
-            os.makedirs('{}/layer2'.format(out_dir))
-            df_final[['id', 'layer_1', 'layer_2']].to_csv('{}/layer2/ckpt_{}_{}.tsv'.format(out_dir, comm_rank, i),
-                                                          sep='\t')
+        df_final[['id', 'layer1', 'layer2']].to_csv('{}/final_{}.tsv'.format(out_dir, basename), sep='\t')
 
 
 if __name__ == "__main__":
     main()
-
-
