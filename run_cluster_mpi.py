@@ -80,9 +80,8 @@ def main():
 
         """Layer2"""
         l2_dfs = []
-        stat_df = pd.DataFrame(columns=['inertia'])
+        stat_ls = []
         # layer 1 inertia
-        stat_df.append(inertia)
         for j in range(nc_layer1):
             if comm_rank == root and j % 100 == 0:
                 logger.info("Layer2: {}/{} done".format(j, nc_layer1))
@@ -91,11 +90,13 @@ def main():
             out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
             _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2', verbose)
             l2_dfs.append(_df)
-            stat_df.append(inertia)
+            stat_ls.append(inertia)
 
-        stat_df.to_csv(os.path.join(out_dir, basename + '.stat'))
         if comm_rank == root:
             logger.info("output stat to {}".format(basename + '.stat'))
+
+        stat_df = pd.DataFrame(stat_ls, columns=['inertia'])
+        stat_df.to_csv(os.path.join(out_dir, basename + '.stat'))
 
         df_final = pd.concat(l2_dfs)
 

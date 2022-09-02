@@ -39,7 +39,7 @@ def show_raw_mols(df, mol_dir, layer1, layer2, out_dir):
     img.save('{}/{}_{}.png'.format(out_dir, layer1, layer2))
 
 
-def read_base64(df):
+def parse_base64(df):
     res = []
     for i in df['base64']:
         _fp = ExplicitBitVect(0)
@@ -90,20 +90,28 @@ class Reducer:
         n_batches = int(np.ceil(float(n_samples) / self.batch_size))
 
         if verbose:
-            for i, x_batch in enumerate(split_n(X, n_batches)):
-                with timing("partial fitting...{}/{}".format(i, n_batches)):
+            with timing("partial fitting..."):
+                for i, x_batch in enumerate(split_n(X, n_batches)):
+                    if i % 100 == 0:
+                        logger.info("{}/{} done".format(i, n_batches))
                     clustering = clustering.partial_fit(x_batch)
         else:
             for x_batch in split_n(X, n_batches):
                 clustering = clustering.partial_fit(x_batch)
 
+        res = []
         if verbose:
             with timing("predicting..."):
-                y = clustering.predict(X)
+                for i, x_batch in enumerate(split_n(X, n_batches)):
+                    if i % 100 == 0:
+                        logger.info("{}/{} done".format(i, n_batches))
+                    y = clustering.predict(x_batch)
+                    res.extend(y)
         else:
-            y = clustering.predict(X)
-
-        return y, clustering.inertia_
+            for i, x_batch in enumerate(split_n(X, n_batches)):
+                y = clustering.predict(x_batch)
+                res.extend(y)
+        return res, clustering.inertia_
 
     def run_with_fps_mpi(self, fps_path, out_path, col, verbose):
         if verbose:
@@ -116,10 +124,10 @@ class Reducer:
 
     def run_with_df_mpi(self, df, out_path, col, verbose):
         if verbose:
-            with timing("reading base64"):
-                X = read_base64(df)
+            with timing("parsing base64"):
+                X = parse_base64(df)
         else:
-            X = read_base64(df)
+            X = parse_base64(df)
 
         y, inertia = self.mb_kmeans(X, verbose)
         df[col] = y
