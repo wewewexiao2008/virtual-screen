@@ -71,11 +71,11 @@ def main():
         basename = os.path.basename(fps_path)
         out_path = os.path.join(out_dir, basename + '.layer1')
 
-        if comm_rank == root:
+        if verbose:
             with timing("running {} layer1".format(fps_path)):
-                df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1')
+                df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
         else:
-            df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1')
+            df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
 
         """Layer2"""
         l2_dfs = []
@@ -88,7 +88,7 @@ def main():
 
             _df = df[df['layer1'] == j]
             out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
-            _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2')
+            _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2', verbose)
             l2_dfs.append(_df)
             stat_df.append(inertia)
 

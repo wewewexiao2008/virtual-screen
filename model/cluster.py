@@ -70,8 +70,12 @@ class Reducer:
         self.init_size = init_size
         self.layer = layer
 
-    def mb_kmeans(self, X):
-        X.astype(np.bool_)
+    def mb_kmeans(self, X, verbose):
+        x = np.array(X)
+        x.astype(np.bool_)
+        if verbose:
+            logger.info("shape: {}, itemsize: {}".format(x.shape, x.itemsize))
+
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
                                      max_iter=self.max_iter,
@@ -80,16 +84,26 @@ class Reducer:
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
-        y = clustering.fit_predict(X)
+        y = clustering.fit_predict(x)
         return y, clustering.inertia_
 
-    def run_with_fps_mpi(self, fps_path, out_path, col):
-        df = pd.read_csv(fps_path, delimiter='\t')
-        return self.run_with_df_mpi(df, out_path, col)
+    def run_with_fps_mpi(self, fps_path, out_path, col, verbose):
+        if verbose:
+            with timing("reading csv"):
+                df = pd.read_csv(fps_path, delimiter='\t')
+        else:
+            df = pd.read_csv(fps_path, delimiter='\t')
 
-    def run_with_df_mpi(self, df, out_path, col):
-        X = read_base64(df)
-        y, inertia = self.mb_kmeans(X)
+        return self.run_with_df_mpi(df, out_path, col, verbose)
+
+    def run_with_df_mpi(self, df, out_path, col, verbose):
+        if verbose:
+            with timing("reading csv"):
+                X = read_base64(df)
+        else:
+            X = read_base64(df)
+
+        y, inertia = self.mb_kmeans(X, verbose)
         df[col] = y
         joblib.dump(y, out_path)
         return df, inertia
