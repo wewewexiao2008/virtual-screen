@@ -43,7 +43,7 @@ def main():
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
-        batch_size=1024,
+        batch_size=nc_layer1 * 2,
         max_iter=1000,
         init_size=nc_layer1,
         layer=1
