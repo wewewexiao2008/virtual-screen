@@ -55,7 +55,7 @@ def main():
         init_size=nc_layer2,
         layer=2
     )
-
+    
     root = 0
     verbose = True if comm_rank == root else False
     

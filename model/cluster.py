@@ -61,7 +61,6 @@ class Reducer:
 
         if self.layer == 2:
             if n_samples < 20:
-
                 return [0] * n_samples, 0
             else:
                 self.n_clusters = n_samples / 10
