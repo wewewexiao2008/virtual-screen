@@ -64,7 +64,7 @@ class Reducer:
                 return [0] * n_samples, 0
             else:
                 self.n_clusters = n_samples / 10
-                self.batch_size = self.n_clusters
+                self.batch_size = self.n_clusters + 1
                 self.init_size = self.n_clusters
 
         n_batches = int(np.ceil(float(n_samples) / self.batch_size))
@@ -78,12 +78,16 @@ class Reducer:
                                      n_init=3, reassignment_ratio=0.01)
 
         if verbose:
-            with timing("partial fitting..."):
+            with timing("partial fitting...\nn_sample={}\nn_batch={}\nbatch_size={}\nn_cluster={}".format(
+                    n_samples, n_batches, self.batch_size, self.n_clusters
+            )):
                 for i, x_batch in enumerate(split_n(X, n_batches)):
-                    if i % 100 == 0:
-                        logger.info("{}/{} done".format(i, n_batches))
                     if len(x_batch) >= self.n_clusters:
+                        if i % 100 == 0:
+                            logger.info("{}/{} done".format(i, n_batches))
                         clustering = clustering.partial_fit(x_batch)
+                    else:
+                        logger.warning("x_batch={} < n_cluster={}".format(len(x_batch), len(self.n_clusters)))
         else:
             for x_batch in split_n(X, n_batches):
                 clustering = clustering.partial_fit(x_batch)

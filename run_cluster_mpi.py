@@ -55,20 +55,23 @@ def main():
         init_size=nc_layer2,
         layer=2
     )
-    
+
     root = 0
-    verbose = True if comm_rank == root else False
+    verbose = True \
+        # if comm_rank == root else False
     
     if comm_rank == root:
-        logger.add(os.path.join(log_dir, 'debug.log'))
+        logger.add(os.path.join(log_dir, 'root_{}.log'.format(comm_rank)))
         logger.info("comm_size = {}".format(comm_size))
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
         send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
+        logger.add(os.path.join(log_dir, 'root_{}.log'.format(comm_rank)))
         send_buf = None
 
     # path list
     local_data = comm.scatter(send_buf, root=root)
+    logger.info("receive: {}".format(str(local_data)))
 
     for i, fps_path in enumerate(local_data):
         """Layer1"""
