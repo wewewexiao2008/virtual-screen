@@ -58,6 +58,7 @@ def main():
 
     root = 0
     verbose = True if comm_rank == root else False
+    
     if comm_rank == root:
         logger.add(os.path.join(log_dir, 'debug.log'))
         logger.info("comm_size = {}".format(comm_size))
