@@ -1,7 +1,7 @@
-import multiprocessing
 import os
 from loguru import logger
-from data.tools import utils, pipeline
+from data.tools import utils
+from data import pipeline
 from model.cluster import Reducer
 
 

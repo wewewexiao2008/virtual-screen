@@ -18,9 +18,6 @@ now = datetime.datetime.now
 FILE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-
-
-
 def parse_base64(df):
     res = []
     for i in df['base64']:
@@ -61,10 +58,17 @@ class Reducer:
             logger.info("shape: {}, itemsize: {}".format(X.shape, X.itemsize))
 
         n_samples, n_features = X.shape
-        n_batches = int(np.ceil(float(n_samples) / self.batch_size))
 
-        if n_samples < self.n_clusters:
-            self.n_clusters = n_samples
+        if self.layer == 2:
+            if n_samples < 20:
+
+                return [0] * n_samples, 0
+            else:
+                self.n_clusters = n_samples / 10
+                self.batch_size = self.n_clusters
+                self.init_size = self.n_clusters
+
+        n_batches = int(np.ceil(float(n_samples) / self.batch_size))
 
         clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
                                      batch_size=self.batch_size,
@@ -73,8 +77,6 @@ class Reducer:
                                      init='k-means++', verbose=0, compute_labels=True,
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
-
-
 
         if verbose:
             with timing("partial fitting..."):

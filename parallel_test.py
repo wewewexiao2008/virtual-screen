@@ -1,9 +1,10 @@
 import os
-from concurrent import futures
 import time
 import contextlib
 from loguru import logger
-from data.tools import pipeline, utils
+from data.tools import utils
+from data import pipeline
+
 
 @contextlib.contextmanager
 def timing(msg: str):
@@ -11,7 +12,7 @@ def timing(msg: str):
     tic = time.time()
     yield
     toc = time.time()
-    logger.info('Finished %s in %.3f seconds'%(msg, toc - tic))
+    logger.info('Finished %s in %.3f seconds' % (msg, toc - tic))
 
 
 LOG_DIR = os.path.join('.', 'log')
