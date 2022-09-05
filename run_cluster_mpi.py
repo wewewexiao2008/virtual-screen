@@ -38,19 +38,19 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    nc_layer1 = 10000
-    nc_layer2 = 200
+    nc_layer1 = 500
+    nc_layer2 = 4000
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
-        batch_size=nc_layer1 * 2,
+        batch_size=nc_layer1 + 1,
         max_iter=1000,
         init_size=nc_layer1,
         layer=1
     )
     l2_reducer = Reducer(
         n_clusters=nc_layer2,
-        batch_size=1000,
+        batch_size=nc_layer2 + 1,
         max_iter=1000,
         init_size=nc_layer2,
         layer=2

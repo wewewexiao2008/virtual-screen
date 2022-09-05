@@ -43,7 +43,8 @@ class Reducer:
                  batch_size: int = 10000,
                  max_iter: int = 1000,
                  init_size: int = 10000,
-                 layer: int = 0
+                 layer: int = 0,
+                 epoch: int = 1
                  ):
 
         self.n_clusters = n_clusters
@@ -51,11 +52,12 @@ class Reducer:
         self.max_iter = max_iter
         self.init_size = init_size
         self.layer = layer
+        self.epoch = epoch
 
     def mb_kmeans(self, X, verbose):
 
         if verbose:
-            logger.info("shape: {}, itemsize: {}".format(X.shape, X.itemsize))
+            logger.info("layer: {} shape: {}".format(self.layer, X.shape))
 
         n_samples, n_features = X.shape
 
@@ -63,8 +65,12 @@ class Reducer:
             # assume that the n_samples is uniformly distributed, E=10
             if n_samples < 20:
                 return [0] * n_samples, 0
-            else:
+            elif n_samples < int(self.n_clusters * 10):
                 self.n_clusters = int(n_samples / 10)
+                self.batch_size = self.n_clusters + 1
+                self.init_size = self.n_clusters
+            else:
+                # self.n_clusters = 200
                 self.batch_size = self.n_clusters + 1
                 self.init_size = self.n_clusters
 
@@ -78,7 +84,7 @@ class Reducer:
                                      random_state=None, tol=0.0, max_no_improvement=10,
                                      n_init=3, reassignment_ratio=0.01)
 
-        if verbose:
+        if verbose and self.layer == 1:
             with timing("partial fitting..."):
                 logger.info("\nn_sample={}\nn_batch={}\nbatch_size={}\nn_cluster={}".format(
                     n_samples, n_batches, self.batch_size, self.n_clusters))
@@ -94,12 +100,15 @@ class Reducer:
             for x_batch in split_n(X, n_batches):
                 if len(x_batch) >= self.n_clusters:
                     clustering = clustering.partial_fit(x_batch)
+                else:
+                    # n(x_batch) should be larger than n_cussters
+                    logger.warning("n(x_batch)={}<n_cluster={}".format(len(x_batch), self.n_clusters))
 
         res = []
-        if verbose:
+        if verbose and self.layer == 1:
             with timing("predicting..."):
                 for i, x_batch in enumerate(split_n(X, n_batches)):
-                    if i % 100 == 0 or i == n_batches:
+                    if i % 100 == 0 or i == n_batches - 1:
                         logger.info("{}/{} done".format(i, n_batches))
                     y = clustering.predict(x_batch)
                     res.extend(y)
@@ -119,7 +128,7 @@ class Reducer:
         return self.run_with_df_mpi(df, out_path, col, verbose)
 
     def run_with_df_mpi(self, df, out_path, col, verbose):
-        if verbose:
+        if verbose and self.layer == 1:
             with timing("parsing base64"):
                 X = parse_base64(df)
         else:
