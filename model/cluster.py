@@ -79,9 +79,9 @@ class Reducer:
                                      n_init=3, reassignment_ratio=0.01)
 
         if verbose:
-            with timing("partial fitting...\nn_sample={}\nn_batch={}\nbatch_size={}\nn_cluster={}".format(
-                    n_samples, n_batches, self.batch_size, self.n_clusters
-            )):
+            with timing("partial fitting..."):
+                logger.info("\nn_sample={}\nn_batch={}\nbatch_size={}\nn_cluster={}".format(
+                    n_samples, n_batches, self.batch_size, self.n_clusters))
                 for i, x_batch in enumerate(split_n(X, n_batches)):
                     if len(x_batch) >= self.n_clusters:
                         # if i % 100 == 0:
@@ -89,10 +89,11 @@ class Reducer:
                     else:
                         # n(x_batch) should be larger than n_cussters
                         logger.warning("n(x_batch)={}<n_cluster={}".format(len(x_batch), self.n_clusters))
-                logger.info("{}/{} done".format(i, n_batches))
+                logger.info("{}/{} done".format(n_batches, n_batches))
         else:
             for x_batch in split_n(X, n_batches):
-                clustering = clustering.partial_fit(x_batch)
+                if len(x_batch) >= self.n_clusters:
+                    clustering = clustering.partial_fit(x_batch)
 
         res = []
         if verbose:
@@ -124,6 +125,7 @@ class Reducer:
         else:
             X = parse_base64(df)
 
+        # if len(X) > 0:
         y, inertia = self.mb_kmeans(X, verbose)
         df[col] = y
         # joblib.dump(y, out_path)

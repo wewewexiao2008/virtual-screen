@@ -38,8 +38,8 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    nc_layer1 = 1000
-    nc_layer2 = 2000
+    nc_layer1 = 10000
+    nc_layer2 = 200
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
@@ -58,7 +58,7 @@ def main():
 
     root = 0
     verbose = True \
-        # if comm_rank == root else False
+        if comm_rank == root else False
     
     if comm_rank == root:
         logger.add(os.path.join(log_dir, 'root_{}.log'.format(comm_rank)))
@@ -84,20 +84,23 @@ def main():
         else:
             df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
 
-        df[['id', 'layer1']].to_csv('{}/onlyL1_{}.tsv'.format(out_dir, basename), sep='\t')
+        df[['id', 'layer1']].to_csv('{}/onlyL1_{}.tsv'.format(out_dir, basename), sep='\t', index=False)
         """Layer2"""
         l2_dfs = []
         stat_ls = []
         # layer 1 inertia
-        for j in range(nc_layer1):
-            if verbose and j % 100 == 0:
-                logger.info("Layer2: {}/{} done".format(j, nc_layer1))
+        with timing("running {} layer2".format(basename)):
+            for j in range(nc_layer1):
+                if verbose and j % 100 == 0:
+                    logger.info("Layer2: {}/{} done".format(j, nc_layer1))
 
-            _df = df[df['layer1'] == j]
-            out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
-            _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2', verbose)
-            l2_dfs.append(_df)
-            stat_ls.append(inertia)
+                _df = df[df['layer1'] == j]
+                if len(_df) == 0:
+                    continue
+                out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
+                _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2', False)
+                l2_dfs.append(_df)
+                stat_ls.append(inertia)
 
         if comm_rank == root:
             logger.info("output stat to {}".format(basename + '.stat'))
@@ -107,7 +110,7 @@ def main():
 
         df_final = pd.concat(l2_dfs)
 
-        df_final[['id', 'layer1', 'layer2']].to_csv('{}/result_{}.tsv'.format(out_dir, basename), sep='\t')
+        df_final[['id', 'layer1', 'layer2']].to_csv('{}/result_{}.tsv'.format(out_dir, basename), sep='\t', index=False)
 
 
 if __name__ == "__main__":
