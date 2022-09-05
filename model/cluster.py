@@ -60,10 +60,11 @@ class Reducer:
         n_samples, n_features = X.shape
 
         if self.layer == 2:
+            # assume that the n_samples is uniformly distributed, E=10
             if n_samples < 20:
                 return [0] * n_samples, 0
             else:
-                self.n_clusters = n_samples / 10
+                self.n_clusters = int(n_samples / 10)
                 self.batch_size = self.n_clusters + 1
                 self.init_size = self.n_clusters
 
@@ -83,11 +84,12 @@ class Reducer:
             )):
                 for i, x_batch in enumerate(split_n(X, n_batches)):
                     if len(x_batch) >= self.n_clusters:
-                        if i % 100 == 0:
-                            logger.info("{}/{} done".format(i, n_batches))
+                        # if i % 100 == 0:
                         clustering = clustering.partial_fit(x_batch)
                     else:
-                        logger.warning("x_batch={} < n_cluster={}".format(len(x_batch), len(self.n_clusters)))
+                        # n(x_batch) should be larger than n_cussters
+                        logger.warning("n(x_batch)={}<n_cluster={}".format(len(x_batch), self.n_clusters))
+                logger.info("{}/{} done".format(i, n_batches))
         else:
             for x_batch in split_n(X, n_batches):
                 clustering = clustering.partial_fit(x_batch)
@@ -96,7 +98,7 @@ class Reducer:
         if verbose:
             with timing("predicting..."):
                 for i, x_batch in enumerate(split_n(X, n_batches)):
-                    if i % 100 == 0:
+                    if i % 100 == 0 or i == n_batches:
                         logger.info("{}/{} done".format(i, n_batches))
                     y = clustering.predict(x_batch)
                     res.extend(y)
@@ -124,7 +126,7 @@ class Reducer:
 
         y, inertia = self.mb_kmeans(X, verbose)
         df[col] = y
-        joblib.dump(y, out_path)
+        # joblib.dump(y, out_path)
         return df, inertia
 
     def run_with_fps(self, fps_path, file_path, out_path, verbose=False):

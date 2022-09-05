@@ -38,8 +38,8 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    nc_layer1 = 10000
-    nc_layer2 = 200
+    nc_layer1 = 1000
+    nc_layer2 = 2000
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
@@ -66,7 +66,7 @@ def main():
         fps_paths = glob.glob(r'{}/*.fps'.format(fps_dir), recursive=True)
         send_buf = [i for i in split_n(fps_paths, comm_size)]
     else:
-        logger.add(os.path.join(log_dir, 'root_{}.log'.format(comm_rank)))
+        logger.add(os.path.join(log_dir, '{}_{}.log'.format(proc_name, comm_rank)))
         send_buf = None
 
     # path list
@@ -84,6 +84,7 @@ def main():
         else:
             df, inertia = l1_reducer.run_with_fps_mpi(fps_path, out_path, 'layer1', verbose)
 
+        df[['id', 'layer1']].to_csv('{}/onlyL1_{}.tsv'.format(out_dir, basename), sep='\t')
         """Layer2"""
         l2_dfs = []
         stat_ls = []
@@ -106,7 +107,7 @@ def main():
 
         df_final = pd.concat(l2_dfs)
 
-        df_final[['id', 'layer1', 'layer2']].to_csv('{}/final_{}.tsv'.format(out_dir, basename), sep='\t')
+        df_final[['id', 'layer1', 'layer2']].to_csv('{}/result_{}.tsv'.format(out_dir, basename), sep='\t')
 
 
 if __name__ == "__main__":
