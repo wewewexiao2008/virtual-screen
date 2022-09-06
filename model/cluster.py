@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from rdkit import DataStructs
 from rdkit.DataStructs import ExplicitBitVect
-from sklearn.cluster import MiniBatchKMeans
+from sklearn.cluster import MiniBatchKMeans, KMeans
 from loguru import logger
 from rdkit.Chem import Draw
 from scripts.rdkit2pdbqt import MolFromPDBQTBlock
@@ -76,13 +76,16 @@ class Reducer:
 
         n_batches = int(np.ceil(float(n_samples) / self.batch_size))
 
-        clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
-                                     batch_size=self.batch_size,
-                                     max_iter=self.max_iter,
-                                     init_size=self.init_size,
-                                     init='k-means++', verbose=0, compute_labels=True,
-                                     random_state=None, tol=0.0, max_no_improvement=10,
-                                     n_init=3, reassignment_ratio=0.01)
+        if self.layer == 1:
+            clustering = MiniBatchKMeans(n_clusters=self.n_clusters,
+                                         batch_size=self.batch_size,
+                                         max_iter=self.max_iter,
+                                         init_size=self.init_size,
+                                         init='k-means++', verbose=0, compute_labels=True,
+                                         random_state=None, tol=0.0, max_no_improvement=10,
+                                         n_init=3, reassignment_ratio=0.01)
+        else:
+            clustering = KMeans(n_clusters=)
 
         if verbose and self.layer == 1:
             with timing("partial fitting..."):
@@ -92,6 +95,8 @@ class Reducer:
                     if len(x_batch) >= self.n_clusters:
                         # if i % 100 == 0:
                         clustering = clustering.partial_fit(x_batch)
+                        #
+                        logger.info()
                     else:
                         # n(x_batch) should be larger than n_cussters
                         logger.warning("n(x_batch)={}<n_cluster={}".format(len(x_batch), self.n_clusters))

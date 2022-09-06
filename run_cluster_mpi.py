@@ -38,12 +38,12 @@ def main():
     comm_size = comm.Get_size()
     proc_name = MPI.Get_processor_name()
 
-    nc_layer1 = 500
-    nc_layer2 = 4000
+    nc_layer1 = 5000
+    nc_layer2 = 200
 
     l1_reducer = Reducer(
         n_clusters=nc_layer1,
-        batch_size=nc_layer1 + 1,
+        batch_size=nc_layer1 * 10,
         max_iter=1000,
         init_size=nc_layer1,
         layer=1
@@ -100,17 +100,18 @@ def main():
                 out_path = os.path.join(out_dir, basename + '.' + str(j) + '.layer2')
                 _df, inertia = l2_reducer.run_with_df_mpi(_df, out_path, 'layer2', False)
                 l2_dfs.append(_df)
-                stat_ls.append(inertia)
+                stat_ls.append((j, inertia))
 
         if comm_rank == root:
             logger.info("output stat to {}".format(basename + '.stat'))
 
-        stat_df = pd.DataFrame(stat_ls, columns=['inertia'])
+        stat_df = pd.DataFrame(stat_ls, columns=['layer2_id', 'inertia'])
         stat_df.to_csv(os.path.join(out_dir, basename + '.stat'))
 
-        df_final = pd.concat(l2_dfs)
-
-        df_final[['id', 'layer1', 'layer2']].to_csv('{}/result_{}.tsv'.format(out_dir, basename), sep='\t', index=False)
+        with timing("outputing..."):
+            df_final = pd.concat(l2_dfs)
+            df_final[['id', 'layer1', 'layer2']].to_csv('{}/result_{}.tsv'.format(out_dir, basename), sep='\t',
+                                                        index=False)
 
 
 if __name__ == "__main__":
