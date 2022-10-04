@@ -34,7 +34,7 @@ def _extract_single(tar_path, tmp_dir):
                 if not is_within_directory(path, member_path):
                     raise Exception("Attempted Path Traversal in Tar File")
         
-            tar.extractall(path, members, numeric_owner) 
+            tar.extractall(path, members, numeric_owner=numeric_owner) 
             
         
         safe_extract(tf, tmp_dir)
@@ -57,7 +57,7 @@ def _extract_single(tar_path, tmp_dir):
                     if not is_within_directory(path, member_path):
                         raise Exception("Attempted Path Traversal in Tar File")
             
-                tar.extractall(path, members, numeric_owner) 
+                tar.extractall(path, members, numeric_owner=numeric_owner) 
                 
             
             safe_extract(tf, os.path.join(tmp_dir,dirname))
